@@ -1,6 +1,12 @@
-#This script is for downloading the daymet data using the NPN data file you have
-
-#Pulling in the npn data
+#----------------------------------------------------------------------------------------------------------------------------------#
+# Script by : Lucien Fitzpatrick
+# Project: Living Collections Phenology Forecasting
+# Purpose: To use arb weather data and phenology monitoring data to create a predicitve model of fall color intensity
+#          This script serves as the initial data download from daymet
+# Inputs: NPN phenology observation file obtain from 1_NPN_download in this repository
+# Outputs: Daymet data for every day of every year in every location the observations come from
+# Notes: 
+#-----------------------------------------------------------------------------------------------------------------------------------#
 
 dat.npn <- read.csv("../data_processed/Arb_NPN_data_raw.csv")
 #Setting the points to download the daymet data from

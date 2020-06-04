@@ -1,3 +1,13 @@
+#----------------------------------------------------------------------------------------------------------------------------------#
+# Script by : Lucien Fitzpatrick
+# Project: Living Collections Phenology Forecasting
+# Purpose: To use arb weather data and phenology monitoring data to create a predicitve model of fall color intensity
+#          This script serves as the initial data download from NPN
+# Inputs: N/A
+# Outputs: data frame of NPN observations
+# Notes: 
+#-----------------------------------------------------------------------------------------------------------------------------------#
+
 #This MUST BE DOWNLOADED FROM GITHUB
 #The CRAN version does not have the full capabilities needed for our project.
 install.packages("devtools")
