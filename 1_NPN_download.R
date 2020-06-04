@@ -3,7 +3,8 @@
 library(rnpn)
 
 #setting file path
-path.doc <- "C:/Users/lucie/Documents/NPN_data/"
+dir.create("../data_processed/", recursive = T, showWarnings = F)
+
 
 #Retrieving npn data
 #rnpn packages has tools to show the corresponding id's for these queries. Request source is your name/affiliation
@@ -12,7 +13,8 @@ path.doc <- "C:/Users/lucie/Documents/NPN_data/"
 dat.npn <- npn_download_status_data(request_source='Morton Arboretum', years=c(2017:2019), 
                                     network_ids = c(720), phenophase_ids =c(498))
 
-write.csv(dat.npn, file.path(path.doc, file = "Arb_NPN_data_raw"), row.names=FALSE)
+write.csv(dat.npn, "../data_processed/Arb_NPN_data_raw.csv", row.names=F)
+
 
 
 
