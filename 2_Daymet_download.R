@@ -42,3 +42,9 @@ lat.list <- daymetr::download_daymet_batch(file_location = pointsfile,
 
 #removing failed downloads 
 lat.list <- lat.list[sapply(lat.list, function(x) is.list(x))]
+
+lat.df <- as.data.frame(lat.list[[1]]$data)
+lat.df$latitude <- lat.list[[1]]$latitude
+lat.df$longitude <- lat.list[[1]]$longitude
+
+write.csv(lat.df, file.path(path.doc, file = "Daymet_data_raw.csv"), row.names=FALSE)
