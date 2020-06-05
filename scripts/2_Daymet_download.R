@@ -43,6 +43,7 @@ lat.list <- daymetr::download_daymet_batch(file_location = pointsfile,
 #removing failed downloads 
 lat.list <- lat.list[sapply(lat.list, function(x) is.list(x))]
 
+#This will only work for arb specific data. This will need to become a loop for multiple locations
 lat.df <- as.data.frame(lat.list[[1]]$data)
 lat.df$latitude <- lat.list[[1]]$latitude
 lat.df$longitude <- lat.list[[1]]$longitude
