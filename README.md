@@ -4,9 +4,6 @@
 
 # Our data
 
-  All of our data has it's own README in the data folder but the general scope of the data gathering and the institutions behind them is outline here
-  
-  
 ## National Phenology Network Observations 
 
   This data comes from a project that monitors oak fall color phenology within The Morton Arboretum Oak Collection using protocols from the National Phenology Network (usanpn.org). Our monitoring was started before the monitoring season of 2017 through present. For this project we are using 2017 to 2019 because 2020 data hasn’t been collected for fall yet. Observations were made by volunteers that had received training from our volunteer coordinator Brendon Reidy. Observations were made 5-9 days apart starting in the spring before bud burst and continuing through the fall until all individuals have dropped their leaves. Observation schedules are not uniform so while an individual tree is monitored every 5-9 days there are likely observations being taken on any given day. Individuals do not need to be monitored in the fall/winter after leaf drop. Species have been recorded in Nature's Notebook, the National Phenology Network database, allowing the data to be freely available for anyone who wishes to use it. More details on NPN observation protocols can be found here: https://www.usanpn.org/nn/guidelines
@@ -27,10 +24,70 @@ Data Overview
 
 # Output Files
 
-Inside the data folder in this repository is a read me containing information on the values in these various data frames
+## **Arb_Quercus_NPN_data_leaves_raw.csv**
 
-**Arb_Quercus_NPN_data_leaves_raw.csv** - Created by 1_NPN_download.R. A raw data frame of all NPN leaf observations for all monitored Oaks in the Morton Arboretum from 2018-2019
+Created by 1_NPN_download.R. A raw data frame of all NPN leaf observations for all monitored Oaks in the Morton Arboretum from 2018-2019
 
-**Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv** - Created by 3_NPN_clean.R. A data frame of all NPN observations for presence of leaves and colored leaves that have been cleaned for potential false "Yes" values.
+**Column Description**
 
-**Daymet_data_raw.csv** - Created by 2_Daymet_download.R. A raw data frame of the daily weather metrics at the Morton Arboretum for every day from 2018-2019. 
+Variable | Description | Unit
+-------- | ----------- | ----
+observation_id | ID tag for individual observation | Integer 
+update_datetime | Date and time of last update to observation | Date: YYYY-MM-DD HH:MM:SS
+site_id | ID tag for site of observation | Integer
+latitude | Decimal latitude of observation with datum WGS84 | Integer
+longitude | Decimal longitude of observation with datum WGS84 | Integer
+elevation_in_meters | Elevation of observation | meters
+state | USA state where observation occurred | Character string
+species_id | ID tag for species of individual observed | Integer
+genus | Genus name of individual observed | Character string
+species | Species name of individual observed | Character string
+common_name | Common name of individual observed | Character string
+kingdom | Kingdom of individual observed | Character string
+individual_id | ID tag of individual observed | Integer
+phenophase_id | ID tag of phenophase being observed | Integer
+phenophase_description | Description of phenophase | Character string
+observation_date | Date of observation | Date: YYYY-MM-DD
+day_of_year | Day of year of observation | Integer
+phenophase_status | Values denoting “Yes (1)” “No (0)” or “Unsure (-1)” for the phenophase being observed| 1 for Yes 0 for No -1 for Unsure
+intensity_category_id | ID for category of intensity value | Integer
+intensity_value | Value of intensity of phenophase | Percentage range
+abundance_value | Measure used for animal abundance| Percentage range
+
+## **Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv** 
+
+Created by 3_NPN_clean.R. A data frame of all NPN observations for presence of leaves and colored leaves that have been cleaned for potential false "Yes" values.
+
+**Column Description**
+Variable | Description | Unit
+-------- | ----------- | ----
+individual_id | ID tag of individual observed | Integer
+species_id | ID tag for species of individual observed | Integer
+genus | Genus name of individual observed | Character string
+observation_date | Date of observation | Date: YYYY-MM-DD
+year | Year of measurements | Integer YYYY
+day_of_year | Day of year of observation | Integer
+leaves | If leaves were observed on the tree in our raw data | Binary (Yes/No)
+color | If colored leaves were observed on the tree in our raw data | Binary (Yes/No)
+leaf.clean | If leaves were observed on the tree AND the previous or future value is also yes | Binary (Yes/No)
+color.clean | If colored leaves were observed on the tree AND the previous or future value is also yes | Binary (Yes/No)
+
+## **Daymet_data_raw.csv** 
+
+Created by 2_Daymet_download.R. A raw data frame of the daily weather metrics at the Morton Arboretum for every day from 2018-2019. 
+
+Note: All Daymet years are 1 –365 days, including leap years. The Daymet database includes leap-days. Values for December31 are discarded from leap years to maintain a 365-day year.
+
+**Column description**
+
+Variable | Description | Unit
+-------- | ----------- | ---- 
+year | Year of measurements | Integer YYYY
+yday | Day of year of measurements Values ranging from 1-365 | Integer
+dayl..s. | Duration of the daylight period for the day. This calculation is based on the period of the day during which the sun is above a hypothetical flat horizon | (s/day)
+prcp..mm.day. | Daily total precipitation, sum of all forms converted to water-equivalent | (mm/day)
+srad..W.m.2. | Incident shortwave radiation flux density, taken as an average over the daylight period of the day | (W/m^2)
+swe..kg.m.2. | Snow water equivalent. The amount of water contained within the snowpack | kg/m^2)
+tmax..deg.c. | Daily maximum 2-meter air temperature | (degrees C)
+tmin..deg.c. | Daily minimum 2-meter air temperature | (degrees C)
+vp..Pa. | Water Vapor Pressure. Daily average partial pressure of water vapor. | Pascals
