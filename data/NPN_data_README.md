@@ -1,6 +1,6 @@
-**Arb_Quercus_NPN_data_leaves_raw.csv**
+# **Arb_Quercus_NPN_data_leaves_raw.csv**
 
-**Column Description**
+## **Column Description**
 
 Variable | Description | Unit
 -------- | ----------- | ----
@@ -27,11 +27,11 @@ intensity_value | Value of intensity of phenophase | Percentage range
 abundance_value | Measure used for animal abundance| Percentage range
 
 
-**Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv**
+# **Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv**
 
 The leaf.clean and color.clean values are calculated by checking our raw "Yes" observations and making sure that either the previous or future value also has a "Yes". This is in case of misentered values becasue if a tree was said to have leaves one observations without previous or future observations also seeing leaves it is assumed a mistake.
 
-**Column Description**
+## **Column Description**
 Variable | Description | Unit
 -------- | ----------- | ----
 individual_id | ID tag of individual observed | Integer
