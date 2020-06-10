@@ -153,19 +153,29 @@ tau_add ~ dgamma(a_add,r_add)
 "
 data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
              a_add=1, r_add=1, x_ic = -100, tau_ic = 1000)
+day <- time-213
+CDD.2019 <- as.data.frame(cbind(day, CDD.2019))
+data$CDD = CDD.2019$CDD.2019[match(data$time,CDD.2019$day)]
 
-#TO DO: match dates for data$y and CDD.2019, make sure dimensions are the same across lists
-#TO DO pt 2: Look at Exercise 06 together make sure we know where the covariates go
-data$CDD <- CDD.2019
+#TO DO:
+# (1) match dates for data$y and CDD.2019, make sure dimensions are the same across lists
+# I think I've done this.
+# (2) put CDD in the model! <- I got a model to run, but let's go through and see if it's okay!
+# (3) Look at Exercise 06 together make sure we know where the covariates go -- let's do this for sure.
 
 ef.out <- ecoforecastR::fit_dlm(model=list(obs="y",fixed="~ 1 + X + CDD"),data)
+names(ef.out)
 
+params <- window(ef.out$params,start=500) ## remove burn-in
+plot(params)
+summary(params)
+cor(as.matrix(params))
+pairs(as.matrix(params))
 
-
-j.model   <- jags.model (file = textConnection(RandomWalk_binom),
-                         data = data,
-                         n.chains = 3)
-
-jags.out   <- coda.samples (model = j.model,
-                            variable.names = c("x","tau_add"),
-                            n.iter = 10000)
+## confidence interval
+out <- as.matrix(ef.out$predict)
+ci <- apply(exp(out),2,quantile,c(0.025,0.5,0.975))
+time.rng = c(1,length(data$time))
+plot(data$time,ci[2,],type='n',ylim=range(data$y,na.rm=TRUE),ylab="Color",xlim=data$time[time.rng])
+ecoforecastR::ciEnvelope(data$time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
+points(data$time,data$y,pch="+",cex=0.5)
