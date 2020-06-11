@@ -42,6 +42,7 @@ for(i in 2:length(min.temp)){
   CDD.2019 <- c(CDD.2019,(CDD.2019[(i-1)]+offset))
 }
 
+time <- 214:365
 plot(time,CDD.2019, ylab="Cold Degree Days")
 
 
@@ -112,7 +113,6 @@ out <- as.matrix(jags.out)
 x.cols <- grep("^x",colnames(out)) ## grab all columns that start with the letter x
 ci <- apply(out[,x.cols],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale
 
-time <- 214:365
 time.rng = c(1,length(data$time))
 plot(time,ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
 ## adjust x-axis label to be monthly if zoomed
@@ -197,7 +197,7 @@ points(dat.npn$day_of_year, dat.npn$color.full ,pch="+",cex=0.5)
 ### add CDD to process ###
 ##########################
 
-RandomWalk_binom = "
+RandomWalk_binom_CDD = "
 model{
 
 #### Data Model
@@ -207,8 +207,8 @@ y[i] ~ dbern(x[time[i]])
 
 #### Process Model
 for(t in 2:nt){
-z[t]~dnorm(x[t-1],tau_add)
-mu[t] <- x[t-1]  + betaX*x[t-1] + betaIntercept*Xf[t,1] + betaTmin*Xf[t,2]
+z[t]~dnorm(mu[t],tau_add)
+mu[t] <- x[t-1]  + betaCDD*CDD[t] # consider: betaX*x[t-1] + betaIntercept 
 x[t] <- min(0.999,max(x[t-1],z[t]))
 }
 
@@ -216,33 +216,45 @@ x[t] <- min(0.999,max(x[t-1],z[t]))
 x[1] ~ dlnorm(x_ic,tau_ic)
 # tau_obs ~ dgamma(a_obs,r_obs)
 tau_add ~ dgamma(a_add,r_add)
+betaCDD ~ dnorm(0, 1)
 }
 "
-data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
-             a_add=1, r_add=1, x_ic = -100, tau_ic = 1000)
+
 day <- time-213
 CDD.2019 <- as.data.frame(cbind(day, CDD.2019))
+
+data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
+             a_add=1, r_add=0.00001, x_ic = -100, tau_ic = 1000)
+
 data$CDD = CDD.2019$CDD.2019[match(data$time,CDD.2019$day)]
 
-#TO DO:
-# (1) match dates for data$y and CDD.2019, make sure dimensions are the same across lists
-# I think I've done this.
-# (2) put CDD in the model! <- I got a model to run, but let's go through and see if it's okay!
-# (3) Look at Exercise 06 together make sure we know where the covariates go -- let's do this for sure.
 
-ef.out <- ecoforecastR::fit_dlm(model=list(obs="y",fixed="~ 1 + X + CDD"),data)
-names(ef.out)
+j.model   <- jags.model (file = textConnection(RandomWalk_binom_CDD),
+                         data = data,
+                         n.chains = 3)
 
-params <- window(ef.out$params,start=500) ## remove burn-in
-plot(params)
-summary(params)
-cor(as.matrix(params))
-pairs(as.matrix(params))
+jags.out   <- coda.samples (model = j.model,
+                            variable.names = c("x","tau_add", "betaCDD"),
+                            n.iter = 10000)
 
-## confidence interval
-out <- as.matrix(ef.out$predict)
-ci <- apply(exp(out),2,quantile,c(0.025,0.5,0.975))
-time.rng = c(1,length(data$time))
-plot(data$time,ci[2,],type='n',ylim=range(data$y,na.rm=TRUE),ylab="Color",xlim=data$time[time.rng])
-ecoforecastR::ciEnvelope(data$time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
-points(data$time,data$y,pch="+",cex=0.5)
+dic.samples(j.model, 5000)
+
+
+#plot(jags.out)
+#GBR <- gelman.plot(jags.out)
+
+#TO DO: burn in!
+#burnin = 5000                                ## determine convergence
+#jags.burn <- window(jags.out,start=burnin)  ## remove burn-in
+#plot(jags.burn)                             ## check diagnostics post burn-in
+
+out <- as.matrix(jags.out)
+x.cols <- grep("^x",colnames(out)) ## grab all columns that start with the letter x
+ci <- apply(out[,x.cols],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale
+
+time <- 214:365
+plot(time,ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
+## adjust x-axis label to be monthly if zoomed
+ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
+points(dat.npn$day_of_year, dat.npn$color.full ,pch="+",cex=0.5)
+
