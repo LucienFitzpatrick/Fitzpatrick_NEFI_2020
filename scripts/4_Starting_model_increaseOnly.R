@@ -3,16 +3,17 @@
 #########################
 library(coda)
 library(rjags)
+library(ggplot2)
 
 #########################
 ### load data, clean up #
 #########################
 
 #Morton arboretum color change data from 2018-2019, NPN protocols
-dat.npn <- read.csv("Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv", na.strings = "-9999")
+dat.npn <- read.csv("data/Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv", na.strings = "-9999")
 
 #Daymet for when using covariates
-dat.met <- read.csv("Daymet_data_raw.csv")
+dat.met <- read.csv("data/Daymet_data_raw.csv")
 
 #creating 2018 frame for hindcasting
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
@@ -26,6 +27,25 @@ dat.npn <- dat.npn[dat.npn$day_of_year > 213, ]
 #Make 0,1 response variable numeric
 dat.npn$color.full <- as.numeric(as.character(dat.npn$color.full))
 
+#########################
+#### Loess Smoothing ####
+#########################
+
+## 2019
+data_2019 = dat.npn[,c("day_of_year","color.full")]
+data_2019 = data_2019[order(data_2019$day_of_year),]
+data_2019$color.full = as.numeric(as.character(data_2019$color.full))
+data_2019$day_of_year = as.numeric(as.character(data_2019$day_of_year))
+
+data_2019_loess_10 <- loess(as.numeric(as.character(color.full)) ~ as.numeric(as.character(day_of_year)), data=data_2019, span=0.10) # 10% smoothing span
+data_2019_loess_10 <- predict(data_2019_loess_10) 
+data_2019_loess_30 <- loess(as.numeric(as.character(color.full)) ~ as.numeric(as.character(day_of_year)), data=data_2019, span=0.30) # 10% smoothing span
+data_2019_loess_30 <- predict(data_2019_loess_30) 
+plot(data_2019$day_of_year, data_2019$color.full, type="l", main="Loess Smoothing 2019 Data", xlab="Day of Year", ylab="Fall Color")
+
+#add these lines to figures below...
+lines(data_2019_loess_10, x=data_2019$day_of_year, col="red", lwd = 2)
+lines(data_2019_loess_30, x=data_2019$day_of_year, col="blue", lwd = 2)
 
 # Calculate chilling degree days...
 
@@ -45,10 +65,10 @@ for(i in 2:length(min.temp)){
 time <- 214:365
 plot(time,CDD.2019, ylab="Cold Degree Days")
 
+##############################################
+####### First try: Random walk        ########
+##############################################
 
-##############################################
-####### First try: Random walk Binom! ########
-##############################################
 RandomWalk = "
 model{
 
@@ -64,10 +84,51 @@ x[t]~dnorm(x[t-1],tau_add)
 
 #### Priors
 x[1] ~ dnorm(x_ic,tau_ic)
-# tau_obs ~ dgamma(a_obs,r_obs)
+tau_obs ~ dgamma(a_obs,r_obs)
 tau_add ~ dgamma(a_add,r_add)
 }
 "
+
+RW.data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
+                a_obs=1, r_obs=0.0001, a_add=1, r_add=0.00001, x_ic = 0 , tau_ic = 1000)
+
+RW.model   <- jags.model (file = textConnection(RandomWalk),
+                          data = RW.data,
+                          n.chains = 3)
+
+RW.out   <- coda.samples (model = RW.model,
+                          variable.names = c("x","tau_add"),
+                          n.iter = 10000)
+
+saveRDS(RW.out, "model_output/RandomWalk_Output.RDS")
+
+RW.burnin = 3000                                ## determine convergence
+RW.burn <- window(RW.out,start=RW.burnin)  ## remove burn-in
+
+RW.DIC <- dic.samples(RW.model, 5000)
+saveRDS(RW.DIC, "model_output/RandomWalk_DIC.RDS")
+
+rw.out <- as.matrix(RW.out)
+x.cols <- grep("^x",colnames(rw.out)) ## grab all columns that start with the letter x
+rw.ci <- apply(rw.out[,x.cols],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale
+
+time.rng = c(1,length(RW.data$time))
+
+pdf("figures/RandomWalk.pdf", width=5, height=4)
+plot(time,rw.ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
+## adjust x-axis label to be monthly if zoomed
+if(diff(time.rng) < 100){ 
+  axis.Date(1, at=seq(time[time.rng[1]],time[time.rng[2]],by='month'), format = "%Y-%m")
+}
+ecoforecastR::ciEnvelope(time,rw.ci[1,],rw.ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
+points(dat.npn$day_of_year, dat.npn$color.full ,pch="+",cex=0.5)
+lines(data_2019_loess_30, x=data_2019$day_of_year, col="blue", lwd = 2)
+dev.off()
+
+
+########################################
+####### Random walk binomial    ########
+########################################
 
 RandomWalk_binom = "
 model{
@@ -89,44 +150,51 @@ x[1] ~ dnorm(x_ic,tau_ic)
 tau_add ~ dgamma(a_add,r_add)
 }
 "
-data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
-             a_add=1, r_add=1, x_ic = 0 , tau_ic = 1000)
 
-j.model   <- jags.model (file = textConnection(RandomWalk_binom),
-                         data = data,
+RWB.data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
+             a_add=1, r_add=0.00001, x_ic = 0 , tau_ic = 1000)
+
+RWB.model   <- jags.model (file = textConnection(RandomWalk_binom),
+                         data = RWB.data,
                          n.chains = 3)
 
-jags.out   <- coda.samples (model = j.model,
+RWB.out   <- coda.samples (model = RWB.model,
                             variable.names = c("x","tau_add"),
                             n.iter = 10000)
 
+saveRDS(RWB.out, "model_output/RandomWalkBinom_Output.RDS")
 
-#gelman.diag(jags.out)
-#plot(jags.out)
-#GBR <- gelman.plot(jags.out)
+RWB.burnin = 3000                                ## determine convergence
+RWB.burn <- window(RWB.out,start=RWB.burnin)  ## remove burn-in
 
-#burnin = 5000                                ## determine convergence
-#jags.burn <- window(jags.out,start=burnin)  ## remove burn-in
-#plot(jags.burn)                             ## check diagnostics post burn-in
+RWB.DIC <- dic.samples(RWB.model, 5000)
+saveRDS(RWB.DIC, "model_output/RandomWalkBinom_DIC.RDS")
 
-out <- as.matrix(jags.out)
-x.cols <- grep("^x",colnames(out)) ## grab all columns that start with the letter x
-ci <- apply(out[,x.cols],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale
+rwb.out <- as.matrix(RWB.out)
+x.cols <- grep("^x",colnames(rwb.out)) ## grab all columns that start with the letter x
+rwb.ci <- apply(rwb.out[,x.cols],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale
 
-time.rng = c(1,length(data$time))
-plot(time,ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
+time.rng = c(1,length(RWB.data$time))
+
+pdf("figures/RandomWalk_Binom.pdf", width=5, height=4)
+plot(time,rwb.ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
 ## adjust x-axis label to be monthly if zoomed
 if(diff(time.rng) < 100){ 
   axis.Date(1, at=seq(time[time.rng[1]],time[time.rng[2]],by='month'), format = "%Y-%m")
 }
-ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
+ecoforecastR::ciEnvelope(time,rwb.ci[1,],rwb.ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.npn$day_of_year, dat.npn$color.full ,pch="+",cex=0.5)
+lines(data_2019_loess_30, x=data_2019$day_of_year, col="blue", lwd = 2)
+dev.off()
 
 ###########################################
 ######### second try: phenology doesn't ###
 ######### move backward!      #############
+###########################################
 
-RandomWalk_binom_prog = "
+# Calling this "FWD" because phenology moves forward!
+
+FWD = "
 model{
   
   #### Data Model
@@ -147,26 +215,26 @@ model{
 }
 "
 
-data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
-            a_add=1, r_add=1, x_ic = -100, tau_ic = 1000)
+FWD.data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
+            a_add=1, r_add=0.00001, x_ic = -100, tau_ic = 1000)
 
 
-
-
-j.model   <- jags.model (file = textConnection(RandomWalk_binom_prog),
-                         data = data,
+FWD.model   <- jags.model (file = textConnection(FWD),
+                         data = FWD.data,
                          n.chains = 3)
 
-jags.out   <- coda.samples (model = j.model,
+FWD.out   <- coda.samples (model = FWD.model,
                             variable.names = c("x","tau_add"),
                             n.iter = 10000)
 
+saveRDS(FWD.out, "model_output/PhenologyForward_Output.RDS")
 
-gelman.diag(jags.out)
+FWD.burnin = 3000                                ## determine convergence
+FWD.burn <- window(FWD.out,start=FWD.burnin)  ## remove burn-in
 
-# is this a convergence problem?
+# any convergence problem?
 out = list(params=NULL,predict=NULL) #Split output into parameters and state variables
-mfit = as.matrix(jags.out,chains=TRUE)
+mfit = as.matrix(FWD.out,chains=TRUE)
 pred.cols = grep("x[",colnames(mfit),fixed=TRUE)
 chain.col = which(colnames(mfit)=="CHAIN")
 out$params = ecoforecastR::mat2mcmc.list(mfit[,-pred.cols])
@@ -174,30 +242,27 @@ GBR.vals <- gelman.diag(out$params)
 GBR.vals
 # no.
 
-#plot(jags.out)
-#GBR <- gelman.plot(jags.out)
+FWD.DIC <- dic.samples(FWD.model, 5000)
+saveRDS(FWD.DIC, "model_output/PhenologyForward_DIC.RDS")
 
-#TO DO: burn in!
-#burnin = 5000                                ## determine convergence
-#jags.burn <- window(jags.out,start=burnin)  ## remove burn-in
-#plot(jags.burn)                             ## check diagnostics post burn-in
+fwd.out <- as.matrix(FWD.out)
+x.cols <- grep("^x",colnames(fwd.out)) ## grab all columns that start with the letter x
+fwd.ci <- apply(fwd.out[,x.cols],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale
 
-out <- as.matrix(jags.out)
-x.cols <- grep("^x",colnames(out)) ## grab all columns that start with the letter x
-ci <- apply(out[,x.cols],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale
-
-time <- 214:365
-plot(time,ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
+pdf("figures/Phenology_Forward.pdf", width=5, height=4)
+plot(time,fwd.ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
 ## adjust x-axis label to be monthly if zoomed
-ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
+ecoforecastR::ciEnvelope(time,fwd.ci[1,],fwd.ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.npn$day_of_year, dat.npn$color.full ,pch="+",cex=0.5)
+lines(data_2019_loess_30, x=data_2019$day_of_year, col="blue", lwd = 2)
+dev.off()
 
 
 ##########################
 ### add CDD to process ###
 ##########################
 
-RandomWalk_binom_CDD = "
+CDD = "
 model{
 
 #### Data Model
@@ -223,38 +288,39 @@ betaCDD ~ dnorm(0, 1)
 day <- time-213
 CDD.2019 <- as.data.frame(cbind(day, CDD.2019))
 
-data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
+CDD.data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
              a_add=1, r_add=0.00001, x_ic = -100, tau_ic = 1000)
 
-data$CDD = CDD.2019$CDD.2019[match(data$time,CDD.2019$day)]
+CDD.data$CDD = CDD.2019$CDD.2019[match(CDD.data$time,CDD.2019$day)]
 
 
-j.model   <- jags.model (file = textConnection(RandomWalk_binom_CDD),
-                         data = data,
+CDD.model   <- jags.model (file = textConnection(CDD),
+                         data = CDD.data,
                          n.chains = 3)
 
-jags.out   <- coda.samples (model = j.model,
+CDD.out   <- coda.samples (model = CDD.model,
                             variable.names = c("x","tau_add", "betaCDD"),
                             n.iter = 10000)
 
-dic.samples(j.model, 5000)
+saveRDS(CDD.out, "model_output/CDDModel_Output.RDS")
 
+CDD.burnin = 3000                                ## determine convergence
+CDD.burn <- window(CDD.out,start=CDD.burnin)  ## remove burn-in
 
-#plot(jags.out)
-#GBR <- gelman.plot(jags.out)
+CDD.DIC <- dic.samples(CDD.model, 5000)
+saveRDS(CDD.DIC, "model_output/CDDModel_DIC.RDS")
 
-#TO DO: burn in!
-#burnin = 5000                                ## determine convergence
-#jags.burn <- window(jags.out,start=burnin)  ## remove burn-in
-#plot(jags.burn)                             ## check diagnostics post burn-in
+cdd.out <- as.matrix(CDD.out)
+x.cols <- grep("^x",colnames(cdd.out)) ## grab all columns that start with the letter x
+cdd.ci <- apply(cdd.out[,x.cols],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale
 
-out <- as.matrix(jags.out)
-x.cols <- grep("^x",colnames(out)) ## grab all columns that start with the letter x
-ci <- apply(out[,x.cols],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale
-
-time <- 214:365
-plot(time,ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
+pdf("figures/CDDModel.pdf", width=5, height=4)
+plot(time,cdd.ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
 ## adjust x-axis label to be monthly if zoomed
-ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
+ecoforecastR::ciEnvelope(time,cdd.ci[1,],cdd.ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.npn$day_of_year, dat.npn$color.full ,pch="+",cex=0.5)
+lines(data_2019_loess_30, x=data_2019$day_of_year, col="blue", lwd = 2)
+dev.off()
+
+
 
