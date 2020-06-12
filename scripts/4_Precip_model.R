@@ -65,7 +65,8 @@ plot(time,precip.ci[2,],type='n',ylim=c(0,1),ylab="Fall color")
 ecoforecastR::ciEnvelope(time, precip.ci[1,], precip.ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.npn$day_of_year, dat.npn$color.full ,pch="+",cex=0.5)
 
-saveRDS(precip.burn,"C:/Users/lucie/Documents/GitHub/NEFI/figures/Precipmodel_Output.RDS")
+saveRDS(precip.burn,"C:/Users/lucie/Documents/GitHub/NEFI/model_output/Precipmodel_Output.RDS")
+saveRDS(DIC.Precip,"C:/Users/lucie/Documents/GitHub/NEFI/model_output/Precipmodel_DIC.RDS")
 
 
 plot(p.out[,"tau_add"])
