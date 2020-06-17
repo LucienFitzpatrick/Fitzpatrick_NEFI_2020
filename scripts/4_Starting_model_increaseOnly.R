@@ -10,7 +10,7 @@ library(ggplot2)
 #########################
 
 #Morton arboretum color change data from 2018-2019, NPN protocols
-dat.npn <- read.csv("data/Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv", na.strings = "-9999")
+dat.npn <- read.csv("C:/Users/lucie/Documents/GitHub/NEFI/data/Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv", na.strings = "-9999")
 
 #Daymet for when using covariates
 dat.met <- read.csv("data/Daymet_data_raw.csv")
