@@ -22,6 +22,19 @@ Data Overview
 
 **3_NPN_clean.R** - This will take the raw dataframe created from 1_NPN_download.R and to both organize the data and clean away potentially misentered observation data. It does this by checking all "YES" values for the presence of leaves or colored leaves and making sure they also have either a previous or future "YES" observation. This is because it wouldn't make sense for a tree to have leaves for one week and then not anymore (This is an assumption that proves accurate for our Oaks and most species but is not neccessairly universal)
 
+**4_xx_model.R** -These are the various models that we currently have. They follow a format where the title explains what the major difference is. They are all state space models and all but the starting models use covariates in their title name
+
+**4_Starting_model.R** - Random walk state space null model
+**4_Starting_model_increaseOnly.R** - Random walk state space null model that includes constraints so that they proportion can only increase
+**4_LengthOfDay.R** - State space model using day length as a covariate
+**4_Precip_model.R** -State space model using precipitaiton as a covariate
+**4_tmin.R** - State space model using minimum temperature as a covariate
+**4_multi_covars.R** - State space model using multiple covariates
+
+**5_forecast** - This will take one of the single covariate models and allow you to forecast using that data. Minor modifications will be required depending on which model is being used for the forecast
+
+**6_iterative** - 
+
 # Output Files
 
 ## **Arb_Quercus_NPN_data_leaves_raw.csv**
