@@ -13,6 +13,16 @@
 # Particle Filter
 library(ecoforecastR)
 
+#Reading in our model output for forecasting
+out <- readRDS("C:/Users/lucie/Documents/GitHub/NEFI/model_output/CDDModel_Output.RDS")
+
+path.hub <- "D:/git_proj/Fitzpatrick_NEFI_2020/data"
+
+dat.npn <- read.csv(file.path(path.hub, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), na.strings = "-9999")
+
+#creating 2018 frame for hindcasting
+dat.2018 <- dat.npn[dat.npn$year == 2018, ]
+
 #This section is for defining a range for a 2018 hindcast
 dat.2018 <- dat.2018[dat.2018$day_of_year > 213, ]
 dat.2018$day_of_year <- as.numeric(as.character(dat.2018$day_of_year))

@@ -1,4 +1,18 @@
-#### Length of day model
+#----------------------------------------------------------------------------------------------------------------------------------#
+# Script by : 
+# Project: Living Collections Phenology Forecasting Autumn
+# Purpose: To use arb weather data and phenology monitoring data to create a predicitve model of fall color intensity
+#          This script is the state space model using day length as a covariate
+# Inputs: Data frame of clean NPN observations
+#         Data frame of daymet data
+# Outputs: A model output R data object
+# Notes: Doesn't currently properly clean "breaking leaf buds" or "falling leaves" so they are excluded in the end
+#-----------------------------------------------------------------------------------------------------------------------------------#
+
+library(rjags)
+
+
+path.doc <- "NPN_data"#### Length of day model
 
 # path.hub <- "C:/Users/lucie/Documents/GitHub/NEFI/data/"
 
@@ -96,7 +110,9 @@ summary(jags.burn_LOD)
 out_LOD <- as.matrix(jags.burn_LOD)
 saveRDS(out_LOD, "model_output/LengthOfDay_Output.RDS")
 
+#---------------------------------------------------------------------------------#
 #This should be all you need in order to run the iterative particle filter script
+#---------------------------------------------------------------------------------#
 
 x.cols_LOD <- grep("^x",colnames(out_LOD)) ## grab all columns that start with the letter x
 ci_LOD <- apply(out_LOD[,x.cols_LOD],2,quantile,c(0.025,0.5,0.975)) ## model was fit on log scale

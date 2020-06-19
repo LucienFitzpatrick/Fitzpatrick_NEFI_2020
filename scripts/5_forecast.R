@@ -8,6 +8,8 @@
 # Outputs:Hindcast of 2018 based on a model trained with 2019 data
 # Notes: 
 #-----------------------------------------------------------------------------------------------------------------------------------#
+library(ggplot2)
+library(ecoforecastR)
 
 out <- out_LOD
 
