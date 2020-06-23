@@ -8,18 +8,17 @@ library(ggplot2)
 #########################
 ### load data, clean up #
 #########################
+path.doc <- ("../data_processed/")
+dir.create("../data_processed/model_output/", recursive = T, showWarnings = F)
 
 #Morton arboretum color change data from 2018-2019, NPN protocols
-dat.npn <- read.csv("C:/Users/lucie/Documents/GitHub/NEFI/data/Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv", na.strings = "-9999")
+dat.npn <- read.csv(file.path(path.doc, "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), na.strings = "-9999")
 
 #Daymet for when using covariates
-dat.met <- read.csv("data/Daymet_data_raw.csv")
+dat.met <- read.csv(file.path(path.doc,"/Daymet_data_raw.csv"))
 
 #creating 2018 frame for hindcasting
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
-
-#isolating just 2019 year for our model
-dat.npn <- dat.npn[dat.npn$year == 2019, ]
 
 #Setting the start of possible fall color as starting August 1st
 dat.npn <- dat.npn[dat.npn$day_of_year > 213, ]
@@ -100,13 +99,13 @@ RW.out   <- coda.samples (model = RW.model,
                           variable.names = c("x","tau_add"),
                           n.iter = 10000)
 
-saveRDS(RW.out, "model_output/RandomWalk_Output.RDS")
+saveRDS(RW.out, "../data_processed/model_output/RandomWalk_Output.RDS")
 
 RW.burnin = 3000                                ## determine convergence
 RW.burn <- window(RW.out,start=RW.burnin)  ## remove burn-in
 
 RW.DIC <- dic.samples(RW.model, 5000)
-saveRDS(RW.DIC, "model_output/RandomWalk_DIC.RDS")
+saveRDS(RW.DIC, "../data_processed/model_output/RandomWalk_DIC.RDS")
 
 rw.out <- as.matrix(RW.out)
 x.cols <- grep("^x",colnames(rw.out)) ## grab all columns that start with the letter x
@@ -173,15 +172,15 @@ RWB.model   <- jags.model (file = textConnection(RandomWalk_binom),
 #                            variable.names = c("x","tau_add"),
 #                            n.iter = 10000)
 
-#saveRDS(RWB.out, "model_output/RandomWalkBinom_Output.RDS")
-RWB.out <- readRDS("model_output/RandomWalkBinom_Output.RDS")
+#saveRDS(RWB.out, "../data_processed/model_output/RandomWalkBinom_Output.RDS")
+RWB.out <- readRDS("../data_processed/model_output/RandomWalkBinom_Output.RDS")
 
 RWB.burnin = 3000                                ## determine convergence
 RWB.burn <- window(RWB.out,start=RWB.burnin)  ## remove burn-in
 
 #RWB.DIC <- dic.samples(RWB.model, 5000)
-#saveRDS(RWB.DIC, "model_output/RandomWalkBinom_DIC.RDS")
-RWB.DIC <- readRDS("model_output/RandomWalkBinom_DIC.RDS")
+#saveRDS(RWB.DIC, "../data_processed/model_output/RandomWalkBinom_DIC.RDS")
+RWB.DIC <- readRDS("../data_processed/model_output/RandomWalkBinom_DIC.RDS")
 
 rwb.out <- as.matrix(RWB.out)
 x.cols <- grep("^x",colnames(rwb.out)) ## grab all columns that start with the letter x
@@ -236,12 +235,12 @@ FWD.model   <- jags.model (file = textConnection(FWD),
                          data = FWD.data,
                          n.chains = 3)
 
-#FWD.out   <- coda.samples (model = FWD.model,
-#                            variable.names = c("x","tau_add"),
-#                            n.iter = 10000)
+FWD.out   <- coda.samples (model = FWD.model,
+                            variable.names = c("x","tau_add"),
+                            n.iter = 10000)
 
-#saveRDS(FWD.out, "model_output/PhenologyForward_Output.RDS")
-FWD.out <- readRDS("model_output/PhenologyForward_Output.RDS")
+saveRDS(FWD.out, "../data_processed/model_output/PhenologyForward_Output.RDS")
+FWD.out <- readRDS("../data_processed/model_output/PhenologyForward_Output.RDS")
 
 FWD.burnin = 3000                                ## determine convergence
 FWD.burn <- window(FWD.out,start=FWD.burnin)  ## remove burn-in
@@ -257,8 +256,8 @@ GBR.vals
 # no.
 
 #FWD.DIC <- dic.samples(FWD.model, 5000)
-#saveRDS(FWD.DIC, "model_output/PhenologyForward_DIC.RDS")
-FWD.DIC <- readRDS("model_output/PhenologyForward_DIC.RDS")
+#saveRDS(FWD.DIC, "../data_processed/model_output/PhenologyForward_DIC.RDS")
+FWD.DIC <- readRDS("../data_processed/model_output/PhenologyForward_DIC.RDS")
 
 fwd.out <- as.matrix(FWD.out)
 x.cols <- grep("^x",colnames(fwd.out)) ## grab all columns that start with the letter x
@@ -317,15 +316,15 @@ CDD.model   <- jags.model (file = textConnection(CDD),
 #                            variable.names = c("x","tau_add", "betaCDD"),
 #                            n.iter = 10000)
 
-#saveRDS(CDD.out, "model_output/CDDModel_Output.RDS")
-CDD.out <- readRDS("model_output/CDDModel_Output.RDS")
+#saveRDS(CDD.out, "../data_processed/model_output/CDDModel_Output.RDS")
+CDD.out <- readRDS("../data_processed/model_output/CDDModel_Output.RDS")
 
 CDD.burnin = 3000                                ## determine convergence
 CDD.burn <- window(CDD.out,start=CDD.burnin)  ## remove burn-in
 
 #CDD.DIC <- dic.samples(CDD.model, 5000)
-#saveRDS(CDD.DIC, "model_output/CDDModel_DIC.RDS")
-CDD.DIC <- readRDS("model_output/CDDModel_DIC.RDS")
+#saveRDS(CDD.DIC, "../data_processed/model_output/CDDModel_DIC.RDS")
+CDD.DIC <- readRDS("../data_processed/model_output/CDDModel_DIC.RDS")
 
 
 cdd.out <- as.matrix(CDD.out)
@@ -385,13 +384,13 @@ CDD.out   <- coda.samples (model = CDD.model,
                            variable.names = c("x","tau_add", "betaCDD"),
                            n.iter = 10000)
 
-saveRDS(CDD.out, "model_output/CDDModel_Output.RDS")
+saveRDS(CDD.out, "../data_processed/model_output/CDDModel_Output.RDS")
 
 CDD.burnin = 3000                                ## determine convergence
 CDD.burn <- window(CDD.out,start=CDD.burnin)  ## remove burn-in
 
 CDD.DIC <- dic.samples(CDD.model, 5000)
-saveRDS(CDD.DIC, "model_output/CDDModel_DIC.RDS")
+saveRDS(CDD.DIC, "../data_processed/model_output/CDDModel_DIC.RDS")
 
 cdd.out <- as.matrix(CDD.out)
 x.cols <- grep("^x",colnames(cdd.out)) ## grab all columns that start with the letter x

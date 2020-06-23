@@ -9,14 +9,13 @@
 # Notes: Doesn't currently properly clean "breaking leaf buds" or "falling leaves" so they are excluded in the end
 #-----------------------------------------------------------------------------------------------------------------------------------#
 
-path.doc <- "NPN_data"
-if(! dir.exists(path.doc)) dir.create(path.doc)
+path.doc <- ("../data_processed/")
 
 library(ggplot2)
 # ------------------------------
 # Cleaning and summarizing data
 # ------------------------------
-dat.npn <- read.csv(file.path(path.doc, file = "Arb_Quercus_NPN_data_leaves_raw.csv"), na.strings = "-9999")
+dat.npn <- read.csv("../data_processed/Arb_Quercus_NPN_data_leaves_raw.csv", na.strings = "-9999")
 dat.npn$genus <- as.factor(dat.npn$genus)
 dat.npn$species <- as.factor(dat.npn$species)
 dat.npn$phenophase_description <- factor(dat.npn$phenophase_description, levels=c("Breaking leaf buds", "Leaves", "Colored leaves", "Falling leaves"))

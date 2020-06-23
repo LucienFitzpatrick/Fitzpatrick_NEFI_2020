@@ -1,7 +1,8 @@
-path.hub <- "C:/Users/lucie/Documents/GitHub/NEFI/data/"
+path.doc <- ("../data_processed/")
 
-dat.npn <- read.csv(file.path(path.hub, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), na.strings = "-9999")
+dat.npn <- read.csv(file.path(path.doc, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), na.strings = "-9999")
 
+dat.npn$color.clean <- as.numeric(car::recode(dat.npn$color.clean, "'No'='0'; 'Yes'='1'; 'NA'='-1'"))
 
 for(YR in unique(dat.npn$year)){
   dat.YR <- dat.npn[dat.npn$year == YR,]
@@ -26,7 +27,10 @@ for(YR in unique(dat.npn$year)){
 }
 
 
-write.csv(dat.npn, file.path(path.hub, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), row.names=FALSE)
+
+
+
+write.csv(dat.npn, file.path(path.doc, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), row.names=FALSE)
 
 
 
