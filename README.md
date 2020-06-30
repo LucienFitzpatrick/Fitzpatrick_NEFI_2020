@@ -24,15 +24,15 @@ Data Overview
 
 **4_xx_model.R** -These are the various models that we currently have. They follow a format where the title explains what the major difference is. They are all state space models and all but the starting models use covariates in their title name
 
-**4_Starting_model.R** - Random walk state space null model
+**4_Starting_model.R** - Random walk state space null model. Early model no longer used
 
-**4_Starting_model_increaseOnly.R** - Random walk state space null model that includes constraints so that they proportion can only increase
+**4_Starting_model_increaseOnly.R** - Random walk state space null model that includes constraints so that they proportion can only increase. Early base model
 
-**4_LengthOfDay.R** - State space model using day length as a covariate
+**4_LengthOfDay.R** - State space model using day length as a covariate. Model assumes that once color occurs it doesn't go away. It uses daylength as calculated from daymet
 
-**4_Precip_model.R** -State space model using precipitaiton as a covariate
+**4_Precip_model.R** -State space model using precipitaiton as a covariate. Model assumes that once color occurs it doesn't go away. It uses daily precipitation as calculated from daymet
 
-**4_tmin.R** - State space model using minimum temperature as a covariate
+**4_tmin.R** - State space model using minimum temperature as a covariate. Model assumes that once color occurs it doesn't go away. It uses minimum temperature as calculated from daymet
 
 **4_multi_covars.R** - State space model using multiple covariates. Currently non-functional
 
