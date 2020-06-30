@@ -17,7 +17,7 @@ library(rnpn)
 
 #setting file path
 # path.doc <- "C:/Users/lucie/Documents/NPN_data/"
-path.doc <- ("../data_processed/")
+path.doc <- ("../data_processed/fall/")
 if(! dir.exists(path.doc)) dir.create(path.doc)
 
 # ------------------------------

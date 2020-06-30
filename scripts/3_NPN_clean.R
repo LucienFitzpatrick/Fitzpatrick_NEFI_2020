@@ -3,19 +3,19 @@
 # Project: Living Collections Phenology Forecasting
 # Purpose: To use arb weather data and phenology monitoring data to create a predicitve model of fall color intensity
 #          This script is for cleaning up the NPN data to make it easier to work with to start 
-# Inputs: N/A
+# Inputs: Data frame of npn data downloaded in the 1_NPN_download script
 # Outputs: data frame of clean NPN observations for colored leaves and leaves
 #          Visualziations of the NPN observations
 # Notes: Doesn't currently properly clean "breaking leaf buds" or "falling leaves" so they are excluded in the end
 #-----------------------------------------------------------------------------------------------------------------------------------#
 
-path.doc <- ("../data_processed/")
+path.doc <- ("../data_processed/fall/")
 
 library(ggplot2)
 # ------------------------------
 # Cleaning and summarizing data
 # ------------------------------
-dat.npn <- read.csv("../data_processed/Arb_Quercus_NPN_data_leaves_raw.csv", na.strings = "-9999")
+dat.npn <- read.csv(file.path(path.doc, "Arb_Quercus_NPN_data_leaves_raw.csv"), na.strings = "-9999")
 dat.npn$genus <- as.factor(dat.npn$genus)
 dat.npn$species <- as.factor(dat.npn$species)
 dat.npn$phenophase_description <- factor(dat.npn$phenophase_description, levels=c("Breaking leaf buds", "Leaves", "Colored leaves", "Falling leaves"))
@@ -55,7 +55,7 @@ dev.off()
 # dat.wide <- tidyr::spread(data=dat.npn, key=phenophase_description, value=pheno.stat)
 # summary(dat.wide)
 
-dat.wide <- reshape2::dcast(data=dat.npn, individual_id + species_id + genus + observation_date + year+ day_of_year ~ phenophase_description, value.var="pheno.stat")
+dat.wide <- reshape2::dcast(data=dat.npn, individual_id + species_id + site_id + genus + observation_date + year+ day_of_year ~ phenophase_description, value.var="pheno.stat")
 names(dat.wide)[(ncol(dat.wide)-3):ncol(dat.wide)] <- c("buds", "leaves", "color", "falling")
 dat.wide$individual_id <- as.factor(dat.wide$individual_id)
 dat.wide$buds <- as.factor(dat.wide$buds)
@@ -128,5 +128,35 @@ dev.off()
 # Save a version of the individual-level cleaned leaf & color data
 # Note: haven't cleaned up bud break or falling leaves
 write.csv(dat.wide[,names(dat.wide)[!names(dat.wide) %in% c("buds", "falling")]], file.path(path.doc, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), row.names=FALSE)
-# ------------------------------
+# ------------------------------------------------------------------#
+#THIS SECTION WILL EVENTUALLY CHANGE
+#THIS section makes it so fall color never drops which makes modeling easier for now
+#-------------------------------------------------------------------#
 
+dat.npn <- read.csv(file.path(path.doc, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), na.strings = "-9999")
+
+dat.npn$color.clean <- as.numeric(car::recode(dat.npn$color.clean, "'No'='0'; 'Yes'='1'; 'NA'='-1'"))
+
+for(YR in unique(dat.npn$year)){
+  dat.YR <- dat.npn[dat.npn$year == YR,]
+  
+  for(i in unique(dat.YR$individual_id)){
+    dat.tmp <- dat.YR[dat.YR$individual_id == i, ]
+    count <-  0
+    
+    for(k in 1:nrow(dat.tmp)){
+      
+      if (dat.tmp[k, "color.clean"] == 1){
+        count <- count + 1
+      }
+      
+      if (count > 3 & dat.tmp[k, "day_of_year"] > 250){
+        dat.tmp[k, "color.clean"] <- 1
+      }
+      
+    }
+    dat.npn[(dat.npn$year == YR & dat.npn$individual_id == i), "color.full"] <- dat.tmp$color.clean
+  }
+}
+
+write.csv(dat.npn, file.path(path.doc, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), row.names=FALSE)

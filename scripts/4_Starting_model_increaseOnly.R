@@ -8,14 +8,12 @@ library(ggplot2)
 #########################
 ### load data, clean up #
 #########################
-path.doc <- ("../data_processed/")
+path.doc <- ("../data_processed/fall/")
 dir.create("../data_processed/model_output/", recursive = T, showWarnings = F)
 
-#Morton arboretum color change data from 2018-2019, NPN protocols
-dat.npn <- read.csv(file.path(path.doc, "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), na.strings = "-9999")
+path.doc <- ("../data_processed/fall/")
 
-#Daymet for when using covariates
-dat.met <- read.csv(file.path(path.doc,"/Daymet_data_raw.csv"))
+dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 
 #creating 2018 frame for hindcasting
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]

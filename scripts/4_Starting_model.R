@@ -1,16 +1,10 @@
 
-path.hub <- "C:/Users/lucie/Documents/GitHub/NEFI/data/"
+path.doc <- ("../data_processed/fall/")
 
-dat.npn <- read.csv(file.path(path.hub, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), na.strings = "-9999")
-
-#Daymet for when using covariates
-dat.met <- read.csv(file.path(path.hub, file = "Daymet_data_raw.csv"))
+dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 
 #creating 2018 frame for hindcasting
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
-
-#isolating just 2019 year for our model
-dat.npn <- dat.npn[dat.npn$year == 2019, ]
 
 #Setting the start of possible fall color as starting August 1st
 dat.npn <- dat.npn[dat.npn$day_of_year > 213, ]

@@ -1,3 +1,14 @@
+
+path.doc <- ("../data_processed/fall/")
+
+dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
+
+#creating 2018 frame for hindcasting
+dat.2018 <- dat.npn[dat.npn$year == 2018, ]
+
+dat.npn$color.full <- as.numeric(as.character(dat.npn$color.full))
+
+
 Precip.2019 <- dat.met[dat.met$year==2019,]
 Precip.2019<- Precip.2019[214:365,4]
 

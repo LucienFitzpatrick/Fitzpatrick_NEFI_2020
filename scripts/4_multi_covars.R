@@ -6,19 +6,14 @@ library(suncalc)
 ### load data, clean up #
 #########################
 
-setwd("C:/Users/kpmontgo/Documents/github/Fitzpatrick_NEFI_2020")
+path.doc <- ("../data_processed/fall/")
 
-#Morton arboretum color change data from 2018-2019, NPN protocols
-dat.npn <- read.csv("Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv", na.strings = "-9999")
+dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 
-#Daymet for when using covariates
-dat.met <- read.csv("Daymet_data_raw.csv")
 
 #creating 2018 frame for hindcasting
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
 
-#isolating just 2019 year for our model
-dat.npn <- dat.npn[dat.npn$year == 2019, ]
 
 #Setting the start of possible fall color as starting August 1st
 dat.npn <- dat.npn[dat.npn$day_of_year > 213, ]
