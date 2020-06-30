@@ -52,12 +52,11 @@ names(list.met) <-  NPN.pts$site.id
 
 
 #Reading in our weather calculation function
-source(file.path(path.hub, "Phenology_Forecasting/scripts/weather_calc.R"))
+source(file.path(path.hub, "NEFI/scripts/fall_weather_calc.R"))
 
-list.met<- lapply(list.met, weather_calc)
+list.met<- lapply(list.met, fall_weather_calc)
 
 lat.calc <- dplyr::bind_rows(list.met)
 
 write.csv(lat.calc, file.path(path.doc, file = "Daymet_clean_data.csv"), row.names=FALSE)
-
 
