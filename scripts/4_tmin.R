@@ -15,21 +15,10 @@ dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 #creating 2018 frame for hindcasting
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
 
-#Setting the start of possible fall color as starting August 1st
-dat.npn <- dat.npn[dat.npn$day_of_year > 213, ]
-
 #Make 0,1 response variable numeric
 dat.npn$color.full <- as.numeric(as.character(dat.npn$color.full))
 
-
-# Calculate daily min temp
-
-min.temp.dat <- dat.met[dat.met$year==2019,]
-min.temp.dat <- min.temp.dat[214:365,8]
-
 time <- 214:365
-
-
 
 ##########################
 ### add tmin to process ###
@@ -61,7 +50,7 @@ betaTmin ~ dnorm(0, 1000)
 day <- time-213
 min.temp <- as.data.frame(cbind(day, min.temp.dat))
 
-data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
+data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-212, nt = 365-213, 
              a_add=0.1, r_add=0.001, x_ic = -100, tau_ic = 1000)
 
 data$tmin = min.temp$min.temp.dat[match(data$time,min.temp$day)]

@@ -1,3 +1,4 @@
+library(rjags)
 
 path.doc <- ("../data_processed/fall/")
 
@@ -6,19 +7,9 @@ dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 #creating 2018 frame for hindcasting
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
 
+dat.npn <- dat.npn[dat.npn$year == 2019, ]
+
 dat.npn$color.full <- as.numeric(as.character(dat.npn$color.full))
-
-
-Precip.2019 <- dat.met[dat.met$year==2019,]
-Precip.2019<- Precip.2019[214:365,4]
-
-time <- 214:365
-day <- time-213
-Precip.2019 <- as.data.frame(cbind(day, Precip.2019))
-
-
-plot(Precip.2019$day, Precip.2019$Precip.2019, ylab="Precip")
-
 
 RandomWalk_binom_Precip = "
 model{
@@ -43,10 +34,8 @@ betaPrecip ~ dnorm(0, .001)
 }
 "
 
-data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
+data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-212, Precip = dat.npn$Precip, nt = 365-213, 
              a_add=1, r_add=0.00001, x_ic = -100, tau_ic = 1000)
-
-data$Precip = Precip.2019$Precip.2019[match(data$time,Precip.2019$day)]
 
 
 precip.model   <- jags.model (file = textConnection(RandomWalk_binom_Precip),

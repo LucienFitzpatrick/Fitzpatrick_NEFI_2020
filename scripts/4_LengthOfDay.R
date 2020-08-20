@@ -15,38 +15,31 @@ path.doc <- ("../data_processed/fall/")
 
 dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 
-# path.hub <- "C:/Users/lucie/Documents/GitHub/NEFI/data/"
-
-path.hub <- "D:/git_proj/Fitzpatrick_NEFI_2020/data"
 
 #creating 2018 frame for hindcasting
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
 
-#Setting the start of possible fall color as starting August 1st
-dat.npn <- dat.npn[dat.npn$day_of_year > 213, ]
-
-
 dat.npn$color.full <- as.numeric(as.character(dat.npn$color.full))
+dat.npn$color.full <- as.numeric(as.character(dat.npn$color.clean))
 
+#library(suncalc)
 
-library(suncalc)
-
-lat <- 41.81405
-long <- -88.05032
-TZ_name <- "America/Chicago"
-dayLengths <- numeric()
+#lat <- 41.81405
+#long <- -88.05032
+#TZ_name <- "America/Chicago"
+#dayLengths <- numeric()
 # days = unique(dat.npn$observation_date)
-days = seq(as.Date("2019-08-02"), as.Date("2019-12-31"), by="days")
-for(d in days){
-  dte <- as.Date(d,origin="2019-08-01")
-  suntimes <- getSunlightTimes(date=dte,
-                               lat=lat,lon=long,keep=c("nauticalDawn","nauticalDusk"),
-                               tz = TZ_name)
-  dayLengths <- c(dayLengths,as.numeric(suntimes$nauticalDusk-suntimes$nauticalDawn))
-}
+#days = seq(as.Date("2019-08-02"), as.Date("2019-12-31"), by="days")
+#for(d in days){
+#  dte <- as.Date(d,origin="2019-08-01")
+#  suntimes <- getSunlightTimes(date=dte,
+#                               lat=lat,lon=long,keep=c("nauticalDawn","nauticalDusk"),
+#                               tz = TZ_name)
+#  dayLengths <- c(dayLengths,as.numeric(suntimes$nauticalDusk-suntimes$nauticalDawn))
+#}
 
 time <- 214:365
-plot(time, dayLengths)
+#plot(dat.npn$observation_date, dat.npn$LOD)
 
 # Model 
 binom_LOD = "
@@ -62,6 +55,7 @@ for(t in 2:nt){
 z[t]~dnorm(mu[t],tau_add)
 mu[t] <- x[t-1]  + betaLOD*LOD[t] # consider: betaX*x[t-1] + betaIntercept 
 x[t] <- min(0.999,max(x[t-1],z[t]))
+#x[t]~ dnorm(mu[t],tau_add)
 }
 
 #### Priors
@@ -71,14 +65,11 @@ tau_add ~ dgamma(a_add,r_add)
 betaLOD ~ dnorm(0, 1000)
 }
 "
-day <- time-213
-LOD.2019 <- as.data.frame(cbind(day, dayLengths))
 
-data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-213, nt = 365-213, 
+data <- list(y = dat.npn$color.full, n = length(dat.npn$color.full), time = dat.npn$day_of_year-212, LOD = dat.npn$LOD, nt = 365-213, 
              a_add=0.1, r_add=0.001, x_ic = -100, tau_ic = 1000)
 
 
-data$LOD = LOD.2019$dayLengths[match(data$time,LOD.2019$day)]
 
 
 j.model_LOD   <- jags.model (file = textConnection(binom_LOD),
@@ -95,13 +86,13 @@ gelman.plot(jags.out_LOD[,"betaLOD"])
 
 # rank order should be consistent, plot one that's the slowest to converge  
 
-burnin_LOD = 4000                                ## determine convergence
+burnin_LOD = 6000                                ## determine convergence
 jags.burn_LOD <- window(jags.out_LOD,start=burnin_LOD)  ## remove burn-in
 #plot(jags.burn) 
 summary(jags.burn_LOD)
 
 out_LOD <- as.matrix(jags.burn_LOD)
-saveRDS(out_LOD, "model_output/LengthOfDay_Output.RDS")
+saveRDS(out_LOD, file.path(path.hub, "model_output/LengthOfDay_Output.RDS"))
 
 #---------------------------------------------------------------------------------#
 #This should be all you need in order to run the iterative particle filter script
