@@ -14,11 +14,14 @@
 library(ecoforecastR)
 
 #Reading in our model output for forecasting
-out <- readRDS("C:/Users/lucie/Documents/GitHub/NEFI/model_output/CDDModel_Output.RDS")
+out_LOD <- readRDS("C:/Users/lucie/Documents/GitHub/NEFI/model_output/LengthOfDay_Output_peak.RDS")
 
-path.hub <- "D:/git_proj/Fitzpatrick_NEFI_2020/data"
+path.hub <- "C:/Users/lucie/Documents/GitHub/NEFI/data/"
+path.doc <- ("../data_processed/fall/")
 
-dat.npn <- read.csv(file.path(path.hub, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), na.strings = "-9999")
+#dat.npn <- read.csv(file.path(path.hub, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), na.strings = "-9999")
+
+dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 
 #creating 2018 frame for hindcasting
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
@@ -26,10 +29,12 @@ dat.2018 <- dat.npn[dat.npn$year == 2018, ]
 #This section is for defining a range for a 2018 hindcast
 dat.2018 <- dat.2018[dat.2018$day_of_year > 213, ]
 dat.2018$day_of_year <- as.numeric(as.character(dat.2018$day_of_year))
-dat.2018$color.full <- as.numeric(as.character(dat.2018$color.full))
+dat.2018$color.full <- as.numeric(as.character(dat.2018$color.clean))
 
 data_2018 <- list(y = dat.2018$color.full, n = length(dat.2018$color.full), time = dat.2018$day_of_year-213, nt = 365-213, 
                   a_add=0.1, r_add=0.001, x_ic = -100, tau_ic = 1000)
+
+time <- 214:365
 
 #Number of monte Carlo iterations that will be used
 Nmc = 10000
@@ -40,7 +45,7 @@ Nmc = 10000
 #This if for 2018 hindcast testing
 IC <- rlnorm(Nmc, data_2018$x_ic,(1/sqrt(data_2018$tau_ic)))
 
-NT = data$nt
+NT = data_2018$nt
 forecastx <- function(IC,Q=0,n=Nmc,betaLOD,LOD){
   x <- z <- matrix(NA,n,NT)  ## storage
   Xprev <- IC           ## initialize
@@ -58,13 +63,13 @@ param.mean <- apply(out_LOD,2,mean)
 x.det_LOD <- forecastx(IC=mean(IC),
                        Q=mean((1/sqrt(out_LOD[,"tau_add"]))),  ## process error off
                        betaLOD=param.mean["betaLOD"],
-                       LOD=dayLengths,
+                       LOD=dat.npn$LOD,
                        n=Nmc)
 
 x.i_LOD <- forecastx(IC=IC,
                      Q=mean((1/sqrt(out_LOD[,"tau_add"]))),  ## process error off
                      betaLOD=param.mean["betaLOD"],
-                     LOD=dayLengths,
+                     LOD=dat.npn$LOD,
                      n=Nmc)
 
 s = seq(1, nrow(out_LOD), length=Nmc)
@@ -72,7 +77,7 @@ s = seq(1, nrow(out_LOD), length=Nmc)
 x.ip_LOD <- forecastx(IC=IC,
                       Q=1/sqrt(out_LOD[s,"tau_add"]),  ## process error off
                       betaLOD=out_LOD[s,"betaLOD"],
-                      LOD=dayLengths,
+                      LOD=dat.npn$LOD,
                       n=Nmc)
 
 
@@ -146,3 +151,4 @@ for(i in seq_along(s)) {
 # ecoforecastR::ciEnvelope(time,Npnpf[1,],Npnpf[3,],col=col.alpha("red",0.5))
 lines(data_2018_loess_10, x=dat.2018_order$day_of_year, col="green", lwd = 2)
 lines(data_2018_loess_30, x=dat.2018_order$day_of_year, col="blue", lwd = 2)
+
