@@ -22,7 +22,7 @@ dat.npn$phenophase_description <- factor(dat.npn$phenophase_description, levels=
 dat.npn$observation_date <- as.Date(dat.npn$observation_date)
 dat.npn$year <- lubridate::year(dat.npn$observation_date)
 dat.npn$pheno.stat <- as.factor(car::recode(dat.npn$phenophase_status, "'0'='No'; '1'='Yes'; '-1'='Unsure'"))
-dat.npn$intensity_value <- as.factor(dat.npn$intensity_value)
+dat.npn$intensity_value <- dat.npn$intensity_value
 summary(dat.npn)
 
 # Checking to see if we have enough intensity data to be useful
@@ -49,6 +49,14 @@ ggplot(data=dat.npn[dat.npn$pheno.stat=="Yes",]) +
   theme(axis.text.x=element_text(angle=-45, hjust=0)) 
 dev.off()
 
+#Converting less than 5% to be a no
+for(i in 1:nrow(dat.npn)){
+  dat.npn[i, "intensity_value"] <- ifelse(is.na(dat.npn[i, "intensity_value"]), 0, dat.npn[i, "intensity_value"])
+  if(dat.npn[i, "intensity_value"]== "Less than 5%"){
+    dat.npn[i, "pheno.stat"] <-  "No"
+  }
+}
+
 
 # # Turning the data into a "wide" format right now to help
 # dat.wide <- reshape2::recast(data=dat.npn, phenophase_description ~ individual_id + species_id + genus + observation_date + day_of_year)
@@ -56,6 +64,7 @@ dev.off()
 # summary(dat.wide)
 
 dat.wide <- reshape2::dcast(data=dat.npn, individual_id + species_id + site_id + genus + observation_date + year+ day_of_year ~ phenophase_description, value.var="pheno.stat")
+
 names(dat.wide)[(ncol(dat.wide)-3):ncol(dat.wide)] <- c("buds", "leaves", "color", "falling")
 dat.wide$individual_id <- as.factor(dat.wide$individual_id)
 dat.wide$buds <- as.factor(dat.wide$buds)
@@ -158,5 +167,7 @@ for(YR in unique(dat.npn$year)){
     dat.npn[(dat.npn$year == YR & dat.npn$individual_id == i), "color.full"] <- dat.tmp$color.clean
   }
 }
+
+
 
 write.csv(dat.npn, file.path(path.doc, file = "Arb_Quercus_NPN_data_leaves_CLEAN_individual.csv"), row.names=FALSE)
