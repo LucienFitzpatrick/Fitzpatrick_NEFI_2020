@@ -14,7 +14,7 @@
 library(ecoforecastR)
 
 #Reading in our model output for forecasting
-out_LOD <- readRDS("C:/Users/lucie/Documents/GitHub/NEFI/model_output/LengthOfDay_Output_peak.RDS")
+out_LOD <- readRDS("C:/Users/lucie/Documents/GitHub/NEFI/model_output/LengthOfDay_Output.RDS")
 
 path.hub <- "C:/Users/lucie/Documents/GitHub/NEFI/data/"
 path.doc <- ("../data_processed/fall/")
@@ -31,8 +31,8 @@ dat.2018 <- dat.2018[dat.2018$day_of_year > 213, ]
 dat.2018$day_of_year <- as.numeric(as.character(dat.2018$day_of_year))
 dat.2018$color.full <- as.numeric(as.character(dat.2018$color.clean))
 
-data_2018 <- list(y = dat.2018$color.full, n = length(dat.2018$color.full), time = dat.2018$day_of_year-213, nt = 365-213, 
-                  a_add=0.1, r_add=0.001, x_ic = -100, tau_ic = 1000)
+data_2018 <- list(y = dat.2018$color.full, n = length(dat.2018$color.full), time = dat.2018$day_of_year-212, LOD = dat.2018$LOD, nt = 365-213, 
+                               a_add=1, r_add=1, x_ic = -100, tau_ic = 1000)
 
 time <- 214:365
 
@@ -52,7 +52,7 @@ forecastx <- function(IC,Q=0,n=Nmc,betaLOD,LOD){
   for(t in 1:NT){
     mu <- Xprev  + betaLOD*LOD[t] 
     z[,t] = rnorm(n,mu,Q)
-    x[,t] <- pmin(0.999,pmax(Xprev,z[,t]))
+    x[,t] <- pmin(0.999,pmax(0.0001,z[,t]))
     Xprev <- x[,t]                                  ## update IC
   }
   return(x)
@@ -90,7 +90,7 @@ ip_ci_LOD <- apply(x.ip_LOD,2,quantile,c(0.025,0.5,0.975))
 ##Two matrices are used because the second is used for calculation, and then the second is filled for the correect time period
 Npnlike = matrix(NA,nrow = Nmc, ncol = nrow(dat.2018))
 Npnclike = matrix(0,nrow = Nmc, ncol = 365-213)
-# i=1
+i=1
 for(i in 1:Nmc){
   Npnlike[i,] = dbinom(dat.2018$color.full,1,x.ip_LOD[i,dat.2018$day_of_year-213],log=TRUE)  ## calculate log likelihoods
   Npnlike[i,is.na(Npnlike[i,])] = 0       ## missing data as weight 1; log(1)=0
@@ -118,7 +118,7 @@ data_2018_loess_30 <- predict(data_2018_loess_30)
 
 
 #Initial plotting of data and uncertainty partitioning BEFORE iteration is added
-plot(dat.2018$day_of_year, dat.2018$color.full ,pch="+",cex=0.5, xlab = "Day of Year", ylab = "Fall Color", main = "2018 Non-resampling Particle Filter")
+plot( dat.2018$day_of_year, dat.2018$color.full ,pch="+",cex=0.5, xlab = "Day of Year", ylab = "Fall Color", main = "2018 Non-resampling Particle Filter")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
 ecoforecastR::ciEnvelope(time,i_ci_LOD[1,],i_ci_LOD[3,],col=col.alpha("green",0.5))
 ecoforecastR::ciEnvelope(time,det_ci_LOD[1,],det_ci_LOD[3,],col=col.alpha("blue",0.5))
