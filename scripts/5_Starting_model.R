@@ -1,3 +1,16 @@
+#----------------------------------------------------------------------------------------------------------------------------------#
+# Script by : Lucien Fitzpatrick
+# Project: Living Collections Phenology Forecasting
+# Purpose: To use arb weather data and phenology monitoring data to create a predicitve model of fall color intensity
+#          This script is the first, most simplified, version of the model that we have
+# Inputs: Clean NPN observation dataframe from 3_NPN_clean.R script
+#         Daymet_clean_data from 2_Daymet_download.R
+# Outputs: Dataframe that has the weather calculations for all days of interest
+# Notes: 
+#-----------------------------------------------------------------------------------------------------------------------------------#
+library(rjags)
+library(coda)
+
 
 path.doc <- ("../data_processed/fall/")
 
@@ -7,33 +20,6 @@ dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
 
 dat.npn$color.clean <- as.numeric(as.character(dat.npn$color.clean))
-
-
-
-library(rjags)
-library(coda)
-
-
-RandomWalk = "
-model{
-  
-  #### Data Model
-  for(i in 1:n){
-    y[i] ~ dnorm(x[time[i]], tau_obs)
-
-  }
-  
-  #### Process Model
-  for(t in 2:nt){
-    x[t]~dnorm(x[t-1],tau_add)
-  }
-  
-  #### Priors
-  x[1] ~ dnorm(x_ic,tau_ic)
-  tau_obs ~ dgamma(0.1, 0.1)
-  tau_add ~ dgamma(a_add,r_add)
-}
-"
 
 
 RandomWalk_binom = "
@@ -105,7 +91,6 @@ ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBl
 points(dat.npn$day_of_year, dat.npn$color.clean ,pch="+",cex=0.5)
 
 ## adjust x-axis label to be monthly if zoomed
-ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.npn$day_of_year, dat.npn$color.clean ,pch="+",cex=0.5)
 lines(data_all_loess_10, x=data_all$day_of_year, col="red", lwd = 2)
 lines(data_all_loess_30, x=data_all$day_of_year, col="blue", lwd = 2)
