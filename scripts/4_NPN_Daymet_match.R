@@ -30,3 +30,40 @@ dat.npn$tmean <- lat.calc$TMEAN[match(dat.npn$observation_date, lat.calc$Date)]
 # Save dat.npn 
 write.csv(dat.npn, file.path(path.doc, "Fall_Phenology_data.csv"), row.names=F)
 
+library(ggplot2)
+
+hist(dat.npn$day_of_year)
+
+ggplot(data = dat.npn)+
+  geom_histogram(aes(x = day_of_year), stat = "count")
+
+
+all.doy <- sort(unique(dat.npn$day_of_year))
+
+missed.doy <- setdiff(214:335, all.doy)
+
+missed.doy
+
+#end.doy <- setdiff(340:365, all.doy)
+
+
+#Looking at invididuals trends
+dat.2018 <- dat.npn[dat.npn$year == 2018 ,]
+ggplot(data = dat.2018) +
+  facet_wrap(~individual_id)+
+  geom_line(aes(x = day_of_year, y = color.clean, color = as.character(year)))+
+  scale_color_discrete()
+
+
+data_all = dat.npn[,c("day_of_year","color.clean")]
+data_all = data_all[order(data_all$day_of_year),]
+data_all$color.clean = as.numeric(as.character(data_all$color.clean))
+data_all$day_of_year = as.numeric(as.character(data_all$day_of_year))
+
+data_all_loess_10 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=data_all, span=0.10) # 10% smoothing span
+data_all_loess_10 <- predict(data_all_loess_10) 
+data_all_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=data_all, span=0.30) # 10% smoothing span
+data_all_loess_30 <- predict(data_all_loess_30) 
+plot(data_all$day_of_year, data_all$color.clean, type="p", main="Loess Smoothing 2019 Data", xlab="Day of Year", ylab="Fall Color")
+lines(data_all_loess_10, x=data_all$day_of_year, col="red", lwd = 2)
+lines(data_all_loess_30, x=data_all$day_of_year, col="blue", lwd = 2)
