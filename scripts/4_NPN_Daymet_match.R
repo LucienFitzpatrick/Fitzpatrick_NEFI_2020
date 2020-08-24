@@ -109,7 +109,7 @@ data_all_loess_10 <- predict(data_all_loess_10)
 data_all_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=data_all, span=0.30) # 30% smoothing span
 data_all_loess_30 <- predict(data_all_loess_30) 
 
-png(filename= file.path(path.fig, paste0("Oak_Collection_Loess_Trend")))
+png(filename= file.path(path.fig, paste0("Oak_Collection_Loess_Trend.png")))
 plot(data_all$day_of_year, data_all$color.clean, type="p", main="Loess Smoothing 2019 Data", xlab="Day of Year", ylab="Fall Color")
 lines(data_all_loess_10, x=data_all$day_of_year, col="red", lwd = 2)
 lines(data_all_loess_30, x=data_all$day_of_year, col="blue", lwd = 2)

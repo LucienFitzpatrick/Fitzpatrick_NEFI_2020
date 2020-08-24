@@ -13,9 +13,9 @@ library(coda)
 
 
 path.doc <- ("../data_processed/fall/")
+path.fig <- ("../data_processed/fall/figures")
 
 dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
-
 
 dat.2018 <- dat.npn[dat.npn$year == 2018, ]
 
@@ -83,19 +83,15 @@ data_all_loess_10 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as
 data_all_loess_10 <- predict(data_all_loess_10) 
 data_all_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=data_all, span=0.30) # 10% smoothing span
 data_all_loess_30 <- predict(data_all_loess_30) 
-plot(data_all$day_of_year, data_all$color.clean, type="p", main="Loess Smoothing 2019 Data", xlab="Day of Year", ylab="Fall Color")
 
 
+png(filename= file.path(path.fig, paste0("Oak_Collection_Model_CI.png")))
 plot(time,ci[2,],ylim=c(0,1),ylab="Fall color")
 ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.npn$day_of_year, dat.npn$color.clean ,pch="+",cex=0.5)
-
-## adjust x-axis label to be monthly if zoomed
-points(dat.npn$day_of_year, dat.npn$color.clean ,pch="+",cex=0.5)
 lines(data_all_loess_10, x=data_all$day_of_year, col="red", lwd = 2)
 lines(data_all_loess_30, x=data_all$day_of_year, col="blue", lwd = 2)
-
-
+dev.off()
 
 
 
