@@ -29,7 +29,7 @@ dat.npn$LOD <- lat.calc$dayl..s.[match(dat.npn$observation_date, lat.calc$Date)]
 dat.npn$tmax <- lat.calc$tmax..deg.c.[match(dat.npn$observation_date, lat.calc$Date)]
 dat.npn$tmin <- lat.calc$tmin..deg.c.[match(dat.npn$observation_date, lat.calc$Date)]
 dat.npn$tmean <- lat.calc$TMEAN[match(dat.npn$observation_date, lat.calc$Date)]
-
+dat.npn$week <-  format(as.Date(dat.npn$observation_date), format = "%W")
 
 # Save dat.npn 
 write.csv(dat.npn, file.path(path.doc, "Fall_Phenology_data.csv"), row.names=F)
@@ -37,25 +37,25 @@ write.csv(dat.npn, file.path(path.doc, "Fall_Phenology_data.csv"), row.names=F)
 library(ggplot2)
 
 #Looking at the frequency of observations on different days
-hist(dat.npn$day_of_year)
+hist(dat.npn$week)
 
 #Looking at the porportion of yes vs. no on every given day
 png(filename= file.path(path.fig, paste0("Oak_Collection_Observation_Hist.png")))
 ggplot(data = dat.npn)+
-  geom_histogram(aes(x = day_of_year, group = color.clean, fill = color.clean), stat = "count")
+  geom_histogram(aes(x = week, group = color.clean, fill = color.clean), stat = "count", binwidth = 7)
 dev.off()
 
 #Checking proportion of yes vs no over time
-dat.prop <- dat.npn[,c("day_of_year", "color.clean")]
+dat.prop <- dat.npn[,c("week", "color.clean")]
 
-freq <- as.data.frame(table(dat.npn$day_of_year))
+freq <- as.data.frame(table(dat.npn$week))
 
 freq.yes <- as.data.frame(table(dat.prop))
 freq.yes <- freq.yes[freq.yes$color.clean == 1,]
 
-freq$color <- freq.yes$Freq[match(freq$Var1, freq.yes$day_of_year)]
+freq$color <- freq.yes$Freq[match(freq$Var1, freq.yes$week)]
 
-colnames(freq) <- c("day_of_year", "nObs", "nObs_yes")
+colnames(freq) <- c("week", "nObs", "nObs_yes")
 
 for(i in 1:nrow(freq)){
   freq[i, "prop"] <- freq[i, "nObs_yes"]/freq[i, "nObs"]
@@ -65,17 +65,17 @@ for(i in 1:nrow(freq)){
 png(filename= file.path(path.fig, paste0("Oak_Collection_Proportions.png")))
 ggplot(data = freq)+
   ggtitle("Proportion of observed Yes values of fall color")+
-  geom_point(aes(x = day_of_year, y = prop, group = 1))+
-  geom_line(aes(x = day_of_year, y = prop, group = 1))+
+  geom_point(aes(x = week, y = prop, group = 1))+
+  geom_line(aes(x = week, y = prop, group = 1))+
   theme(axis.text.x = element_text(angle=70, size = 7))
 dev.off()
 
 #Looking at the days with no observations
-all.doy <- sort(unique(dat.npn$day_of_year))
+#all.doy <- sort(unique(dat.npn$day_of_year))
 
-missed.doy <- setdiff(214:335, all.doy)
+#missed.doy <- setdiff(214:335, all.doy)
 
-missed.doy
+#missed.doy
 
 #end.doy <- setdiff(340:365, all.doy)
 
@@ -85,7 +85,7 @@ png(filename= file.path(path.fig, paste0("Oak_Collection_Individuals_2018.png"))
 dat.2018 <- dat.npn[dat.npn$year == 2018 ,]
 ggplot(data = dat.2018) +
   facet_wrap(~individual_id)+
-  geom_line(aes(x = day_of_year, y = color.clean, color = as.character(year)))+
+  geom_line(aes(x = week, y = color.clean, color = as.character(year)))+
   scale_color_discrete()
 dev.off()
 
@@ -93,25 +93,25 @@ png(filename= file.path(path.fig, paste0("Oak_Collection_Individuals_2019.png"))
 dat.2019 <- dat.npn[dat.npn$year == 2019 ,]
 ggplot(data = dat.2019) +
   facet_wrap(~individual_id)+
-  geom_line(aes(x = day_of_year, y = color.clean, color = as.character(year)))+
+  geom_line(aes(x = week, y = color.clean, color = as.character(year)))+
   scale_color_discrete()
 dev.off()
 
 
 #Setting up trend lines for graphing
-data_all = dat.npn[,c("day_of_year","color.clean")]
-data_all = data_all[order(data_all$day_of_year),]
+data_all = dat.npn[,c("week","color.clean")]
+data_all = data_all[order(data_all$week),]
 data_all$color.clean = as.numeric(as.character(data_all$color.clean))
-data_all$day_of_year = as.numeric(as.character(data_all$day_of_year))
+data_all$week = as.numeric(as.character(data_all$week))
 
-data_all_loess_10 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=data_all, span=0.10) # 10% smoothing span
+data_all_loess_10 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(week)), data=data_all, span=0.10) # 10% smoothing span
 data_all_loess_10 <- predict(data_all_loess_10) 
-data_all_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=data_all, span=0.30) # 30% smoothing span
+data_all_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(week)), data=data_all, span=0.30) # 30% smoothing span
 data_all_loess_30 <- predict(data_all_loess_30) 
 
 png(filename= file.path(path.fig, paste0("Oak_Collection_Loess_Trend.png")))
-plot(data_all$day_of_year, data_all$color.clean, type="p", main="Loess Smoothing 2019 Data", xlab="Day of Year", ylab="Fall Color")
-lines(data_all_loess_10, x=data_all$day_of_year, col="red", lwd = 2)
-lines(data_all_loess_30, x=data_all$day_of_year, col="blue", lwd = 2)
+plot(data_all$week, data_all$color.clean, type="p", main="Loess Smoothing 2019 Data", xlab="Day of Year", ylab="Fall Color")
+lines(data_all_loess_10, x=data_all$week, col="red", lwd = 2)
+lines(data_all_loess_30, x=data_all$week, col="blue", lwd = 2)
 dev.off()
 
