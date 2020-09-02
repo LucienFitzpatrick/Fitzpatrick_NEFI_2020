@@ -31,13 +31,47 @@ dat.npn$tmin <- lat.calc$tmin..deg.c.[match(dat.npn$observation_date, lat.calc$D
 dat.npn$tmean <- lat.calc$TMEAN[match(dat.npn$observation_date, lat.calc$Date)]
 dat.npn$week <-  format(as.Date(dat.npn$observation_date), format = "%W")
 
+#Calculating the number of trees being monitored each year
+nTrees.2018 <- length(unique(dat.npn[dat.npn$year == '2018', "individual_id"]))
+nTrees.2019 <- length(unique(dat.npn[dat.npn$year == '2019', "individual_id"]))
+
+#Pulling out the proportion of trees captured each week
+for(YR in unique(dat.npn$year)){
+  dat.yr <- dat.npn[dat.npn$year == YR,]
+  for(i in unique(dat.yr$week)){
+    dat.tmp <- dat.yr[dat.yr$week == i, ]
+    dat.tmp$nObs_week <- length(unique(dat.tmp$individual_id))
+    dat.yr[dat.yr$week == i, "nObs_week"] <- dat.tmp$nObs_week
+  }
+  if(YR ==  2018){
+    dat.yr$prop_Obs_week <- dat.yr$nObs_week/nTrees.2018
+  }
+  if(YR == 2019){
+    dat.yr$prop_Obs_week <- dat.yr$nObs_week/nTrees.2019
+  }
+  dat.npn[dat.npn$year == YR, "nObs_week"] <- dat.yr$nObs_week
+  dat.npn[dat.npn$year == YR, "prop_Obs_week"] <- dat.yr$prop_Obs_week
+}
+
+#Looking at the proportions of different weeks
+ggplot(data = dat.npn)+
+  geom_point(aes(x = week, y = prop_Obs_week))
+
+length(unique(dat.npn$week))
+
+#Removing weeks that don't have observations for more than 75% of trees
+#Fortunately this only removes the beginning and end weeks
+dat.npn <- dat.npn[dat.npn$prop_Obs_week >= .75,]
+
+length(unique(dat.npn$week))
+
 # Save dat.npn 
 write.csv(dat.npn, file.path(path.doc, "Fall_Phenology_data.csv"), row.names=F)
 
 library(ggplot2)
 
 #Looking at the frequency of observations on different days
-hist(dat.npn$week)
+hist(as.numeric(dat.npn$week))
 
 #Looking at the porportion of yes vs. no on every given day
 png(filename= file.path(path.fig, paste0("Oak_Collection_Observation_Hist.png")))
