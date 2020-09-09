@@ -10,6 +10,7 @@
 # Notes: 
 #-----------------------------------------------------------------------------------------------------------------------------------#
 library(dplyr)
+library(ggplot2)
 path.doc <- ("../data_processed/fall/")
 path.fig <- ("../data_processed/fall/figures")
 if(!dir.exists(path.fig)) dir.create(path.fig, recursive=T)
@@ -62,13 +63,14 @@ length(unique(dat.npn$week))
 #Removing weeks that don't have observations for more than 75% of trees
 #Fortunately this only removes the beginning and end weeks
 dat.npn <- dat.npn[dat.npn$prop_Obs_week >= .75,]
+unique(dat.npn$week)
+
 
 length(unique(dat.npn$week))
+summary(dat.npn$prop_Obs_week)
 
 # Save dat.npn 
 write.csv(dat.npn, file.path(path.doc, "Fall_Phenology_data.csv"), row.names=F)
-
-library(ggplot2)
 
 #Looking at the frequency of observations on different days
 hist(as.numeric(dat.npn$week))
