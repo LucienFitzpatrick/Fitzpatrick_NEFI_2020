@@ -36,7 +36,7 @@ model{
   }
   
   #### Priors
-  x[1] ~ dnorm(x_ic,tau_ic)
+  x[1] ~ dlnorm(x_ic,tau_ic)
   tau_add ~ dgamma(a_add,r_add)
 }
 "
@@ -49,7 +49,7 @@ dat.npn <- dat.npn[order(dat.npn$week),]
 dat.new <- dat.npn[dat.npn$week < 48,] 
 
 data.new <- list(y = dat.new$color.clean, n = length(dat.new$color.clean), time = dat.new$week-(min(dat.new$week)-1), nt = length(unique(dat.new$week)), 
-                 a_add=100, r_add=1, x_ic = 0 , tau_ic = 1000)
+                 a_add=100, r_add=1, x_ic = -100 , tau_ic = 1000)
 
 
 
@@ -107,7 +107,7 @@ dat.2018$week <- as.numeric(as.character(dat.2018$week))
 dat.2018$color.clean <- as.numeric(as.character(dat.2018$color.clean))
 
 data_2018 <- list(y = dat.2018$color.clean, n = length(dat.2018$color.clean), time = dat.2018$week-(min(dat.2018$week)-1), nt = length(unique(dat.2018$week)), 
-                  a_add=100, r_add=1, x_ic = 0, tau_ic = 1000)
+                  a_add=100, r_add=1, x_ic = -100, tau_ic = 1000)
 
 #Number of monte Carlo iterations that will be used
 Nmc = 20000
@@ -116,7 +116,7 @@ Nmc = 20000
 #IC <- rlnorm(Nmc, data$x_ic,(1/sqrt(data$tau_ic)))
 
 #This if for 2018 hindcast testing
-IC <- rnorm(Nmc, data_2018$x_ic,(1/sqrt(data_2018$tau_ic)))
+IC <- rlnorm(Nmc, data_2018$x_ic,(1/sqrt(data_2018$tau_ic)))
 
 #### Forecast function 
 ##` @param IC    Initial Conditions
@@ -215,7 +215,9 @@ for(i in seq_along(s)) {
 }
 
 time <- 31:47
-plot(dat.2018$week, dat.2018$color.clean ,pch="+",cex=0.5, xlab = "Week", ylab = "Fall Color", main = "Iterative 2018 Non-resampling Particle Filter")
+path.figures <- "../figures"
+png(width= 750, filename= file.path(path.figures, paste0('Weekly Iterative fall color prediction', '.png')))
+plot(dat.2018$week, dat.2018$color.clean ,pch="+",cex=0.5, xlab = "Week", ylab = "Fall Color", main = "Iterative 2018 Oak collection forecast")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
 for(i in seq_along(s)) {
   ecoforecastR::ciEnvelope(time[(s[i]:47)-30],iter_pf[[i]][1,(s[i]:47)-30],iter_pf[[i]][3,(s[i]:47)-30],col=col.alpha(i,0.5))
@@ -223,4 +225,5 @@ for(i in seq_along(s)) {
 # ecoforecastR::ciEnvelope(time,Npnpf[1,],Npnpf[3,],col=col.alpha("red",0.5))
 lines(data_2018_loess_10, x=dat.2018_order$week, col="green", lwd = 2)
 lines(data_2018_loess_30, x=dat.2018_order$week, col="blue", lwd = 2)
+dev.off()
 
