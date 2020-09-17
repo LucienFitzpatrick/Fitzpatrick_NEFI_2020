@@ -11,7 +11,6 @@
 library(rjags)
 library(coda)
 library(ecoforecastR)
-library(zoo)
 
 
 path.doc <- ("../data_processed/fall/")
@@ -66,14 +65,26 @@ model{
 data.new <- list(y = dat.roll$color.clean, n = length(dat.roll$color.clean), time = dat.roll$day_of_year-(min(dat.roll$day_of_year)-1), nt = 341-213, 
                  a_add=100, r_add=1, x_ic = -100 , tau_ic = 1000)
 
+data.npn <- list(y = dat.npn$color.clean, n = length(dat.npn$color.clean), time = dat.npn$day_of_year-(min(dat.npn$day_of_year)-1), nt = 341-213, 
+                 a_add=100, r_add=1, x_ic = -100 , tau_ic = 1000)
+
+
 
 
 j.model   <- jags.model (file = textConnection(RandomWalk_binom),
                          data = data.new,
                          n.chains = 3)
 
+jnpn.model   <- jags.model (file = textConnection(RandomWalk_binom),
+                         data = data.npn,
+                         n.chains = 3)
+
 
 jags.out   <- coda.samples (model = j.model,
+                            variable.names = c("x","tau_add"),
+                            n.iter = 40000)
+
+jags.out.npn   <- coda.samples (model = j.model,
                             variable.names = c("x","tau_add"),
                             n.iter = 40000)
 
@@ -89,7 +100,7 @@ jags.burn <- window(jags.out,start=burnin)  ## remove burn-in
 #plot(jags.burn)  
 #summary(jags.burn)## check diagnostics post burn-in
 
-out <- as.matrix(jags.burn)
+out <- as.matrix(jags.out)
 x.cols <- grep("^x",colnames(out)) ## grab all columns that start with the letter x
 ci <- apply(out[,x.cols],2,quantile,c(0.025,0.5,0.975))
 
@@ -134,6 +145,9 @@ dat.roll2018$day_of_year <- as.numeric(as.character(dat.roll2018$day_of_year))
 dat.roll2018$color.clean <- as.numeric(as.character(dat.roll2018$color.clean))
 
 data_2018 <- list(y = dat.roll2018$color.clean, n = length(dat.roll2018$color.clean), time = dat.roll2018$day_of_year-(min(dat.roll2018$day_of_year)-1), nt = 341-213, 
+                  a_add=100, r_add=1, x_ic = -100, tau_ic = 1000)
+
+data_npn_2018 <- list(y = dat.2018$color.clean, n = length(dat.2018$color.clean), time = dat.2018$day_of_year-(min(dat.2018$day_of_year)-1), nt = 341-213, 
                   a_add=100, r_add=1, x_ic = -100, tau_ic = 1000)
 
 #Number of monte Carlo iterations that will be used
@@ -193,9 +207,10 @@ for(i in 1:Nmc){
   Npnlike[i,] = dbinom(dat.roll2018$color.clean,1,x.ip_LOD[i,dat.roll2018$day_of_year-212],log=TRUE)  ## calculate log likelihoods
   Npnlike[i,is.na(Npnlike[i,])] = 0       ## missing data as weight 1; log(1)=0
   tmp = tapply(Npnlike[i,],dat.roll2018$day_of_year-212,sum)
-  tmp2 = rep(0, length(unique(dat.roll2018$day_of_year)))
+  tmp2 = rep(0, 341-213)
   tmp2[as.numeric(names(tmp))] = tmp
   Npnclike[i,] = exp(cumsum(tmp2))
+  Npnclike[i,] <- apply(as.data.frame(Npnclike[i,]), 1, function(x) ifelse(x < 9.999999e-290, 9.999999e-290, x))
 }
 hist(Npnclike[,ncol(Npnclike)],main="Final Ensemble Weights")
 
@@ -214,7 +229,7 @@ data_2018_loess_10 <- predict(data_2018_loess_10)
 data_2018_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=dat.roll2018_order, span=0.30) # 10% smoothing span
 data_2018_loess_30 <- predict(data_2018_loess_30) 
 
-time <- 213:365
+time <- 213:355
 #Initial plotting of data and uncertainty partitioning BEFORE iteration is added
 plot( dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "Day of Year", ylab = "Fall Color", main = "2018 Non-resampling Particle Filter")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
@@ -235,7 +250,7 @@ for(i in seq_along(s)) {
   iter_pf[[i]] = matrix(NA,3,nobs)
   wbar = apply(Npnclike,2,mean)             ## mean weight at each time point
   tmp_clike = Npnclike
-  tmp_clike[,(s[i]:365)-233] <- tmp_clike[,s[i]-233]
+  tmp_clike[,(s[i]:355)-233] <- tmp_clike[,s[i]-233]
   for(j in 1:nobs){
     iter_pf[[i]][,j] = wtd.quantile(x.ip_LOD[,j],tmp_clike[,j]/wbar[j],c(0.025,0.5,0.975))  ## calculate weighted median and CI
   }
@@ -247,7 +262,7 @@ png(width= 750, filename= file.path(path.figures, paste0('Daily Iterative fall c
 plot(dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "day_of_year", ylab = "Fall Color", main = "Iterative 2018 Oak collection forecast")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
 for(i in seq_along(s)) {
-  ecoforecastR::ciEnvelope(time[(s[i]:365)-233],iter_pf[[i]][1,(s[i]:365)-233],iter_pf[[i]][3,(s[i]:365)-233],col=col.alpha(i,0.5))
+  ecoforecastR::ciEnvelope(time[(s[i]:355)-233],iter_pf[[i]][1,(s[i]:355)-233],iter_pf[[i]][3,(s[i]:355)-233],col=col.alpha(i,0.5))
 }
 # ecoforecastR::ciEnvelope(time,Npnpf[1,],Npnpf[3,],col=col.alpha("red",0.5))
 lines(data_2018_loess_10, x=dat.roll2018_order$day_of_year, col="green", lwd = 2)
