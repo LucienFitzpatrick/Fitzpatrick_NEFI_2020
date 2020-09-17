@@ -19,13 +19,28 @@ path.fig <- ("../data_processed/fall/figures")
 
 dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 
+dat.2018 <- dat.npn[dat.npn$year == 2018,]
+dat.2018 <- dat.2018[dat.2018$day_of_year <= 341,]
+
 dat.npn <- dat.npn[dat.npn$year == 2019,]
 dat.npn <- dat.npn[order(dat.npn$day_of_year),]
 
 dat.npn$color.clean <- as.numeric(as.character(dat.npn$color.clean))
 
-dat.npn$rmean <- rollmean(dat.npn$color.clean, k = 7, fill = NA)
+#dat.npn$color.clean <- rollmean(dat.npn$color.clean, k = 7, fill = NA)
 
+#Creating copies of observations so we can create 7 day rolling averages
+dat.roll <- data.frame()
+for(i in 1:nrow(dat.npn)){
+  dat.tmp <- dat.npn[i,]
+  dat.tmp <- dat.tmp[rep(seq_len(nrow(dat.tmp)), 7), ]
+  k <- 0
+  for(j in 1:nrow(dat.tmp)){
+    dat.tmp[j, "day_of_year"] <- dat.tmp[j, "day_of_year"] + k
+    k <- k + 1
+  }
+  dat.roll <- rbind(dat.roll, dat.tmp)
+}
 
 RandomWalk_binom = "
 model{
@@ -46,9 +61,9 @@ model{
   tau_add ~ dgamma(a_add,r_add)
 }
 "
-#dat.npn <- dat.npn[dat.npn$week < 48,] 
+#dat.roll <- dat.roll[dat.roll$week < 48,] 
 
-data.new <- list(y = dat.npn$rmean, n = length(dat.npn$rmean), time = dat.npn$day_of_year-(min(dat.npn$day_of_year)-1), nt = 365-213, 
+data.new <- list(y = dat.roll$color.clean, n = length(dat.roll$color.clean), time = dat.roll$day_of_year-(min(dat.roll$day_of_year)-1), nt = 341-213, 
                  a_add=100, r_add=1, x_ic = -100 , tau_ic = 1000)
 
 
@@ -72,15 +87,15 @@ gelman.diag(jags.out)
 burnin = 20000                                ## determine convergence
 jags.burn <- window(jags.out,start=burnin)  ## remove burn-in
 #plot(jags.burn)  
-summary(jags.burn)## check diagnostics post burn-in
+#summary(jags.burn)## check diagnostics post burn-in
 
-out <- as.matrix(jags.out)
+out <- as.matrix(jags.burn)
 x.cols <- grep("^x",colnames(out)) ## grab all columns that start with the letter x
 ci <- apply(out[,x.cols],2,quantile,c(0.025,0.5,0.975))
 
-time <- 214:365
+time <- 214:341
 
-data_all = dat.npn[,c("day_of_year","color.clean")]
+data_all = dat.roll[,c("day_of_year","color.clean")]
 data_all = data_all[order(data_all$day_of_year),]
 data_all$color.clean = as.numeric(as.character(data_all$color.clean))
 data_all$day_of_year = as.numeric(as.character(data_all$day_of_year))
@@ -92,21 +107,33 @@ data_all_loess_30 <- predict(data_all_loess_30)
 
 
 png(filename= file.path(path.fig, paste0("Daily_Oak_Collection_Model_CI.png")))
-plot(time,ci[2,],ylim=c(0,1),ylab="Fall color")
+plot(time,ci[2,],ylim=c(0,1), xlim=c(210, 350),ylab="Fall color")
 ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
-points(dat.npn$day_of_year, dat.npn$color.clean ,pch="+",cex=0.5)
+points(dat.roll$day_of_year, dat.roll$color.clean ,pch="+",cex=0.5)
 lines(data_all_loess_10, x=data_all$day_of_year, col="red", lwd = 2)
 lines(data_all_loess_30, x=data_all$day_of_year, col="blue", lwd = 2)
 dev.off()
 
 
 #This section is for defining a range for a 2018 hindcast
-dat.2018 <- dat.npn[dat.npn$year == 2018, ]
-dat.2018 <- dat.2018[dat.2018$day_of_year > 29 & dat.2018$day_of_year< 48, ]
-dat.2018$day_of_year <- as.numeric(as.character(dat.2018$day_of_year))
-dat.2018$color.clean <- as.numeric(as.character(dat.2018$color.clean))
+#Creating copies of observations so we can create 7 day rolling averages
+dat.roll2018 <- data.frame()
+for(i in 1:nrow(dat.2018)){
+  dat.tmp <- dat.2018[i,]
+  dat.tmp <- dat.tmp[rep(seq_len(nrow(dat.tmp)), 7), ]
+  k <- 0
+  for(j in 1:nrow(dat.tmp)){
+    dat.tmp[j, "day_of_year"] <- dat.tmp[j, "day_of_year"] + k
+    k <- k + 1
+  }
+  dat.roll2018 <- rbind(dat.roll2018, dat.tmp)
+}
 
-data_2018 <- list(y = dat.2018$color.clean, n = length(dat.2018$color.clean), time = dat.2018$day_of_year-(min(dat.2018$day_of_year)-1), nt = length(unique(dat.2018$day_of_year)), 
+
+dat.roll2018$day_of_year <- as.numeric(as.character(dat.roll2018$day_of_year))
+dat.roll2018$color.clean <- as.numeric(as.character(dat.roll2018$color.clean))
+
+data_2018 <- list(y = dat.roll2018$color.clean, n = length(dat.roll2018$color.clean), time = dat.roll2018$day_of_year-(min(dat.roll2018$day_of_year)-1), nt = 341-213, 
                   a_add=100, r_add=1, x_ic = -100, tau_ic = 1000)
 
 #Number of monte Carlo iterations that will be used
@@ -159,14 +186,14 @@ ip_ci_LOD <- apply(x.ip_LOD,2,quantile,c(0.025,0.5,0.975))
 ## calculate the cumulative likelihoods
 ## to be used as PF weights
 ##Two matrices are used because the second is used for calculation, and then the second is filled for the correect time period
-Npnlike = matrix(NA,nrow = Nmc, ncol = nrow(dat.2018))
-Npnclike = matrix(0,nrow = Nmc, ncol = length(unique(dat.2018$day_of_year)))
+Npnlike = matrix(NA,nrow = Nmc, ncol = nrow(dat.roll2018))
+Npnclike = matrix(0,nrow = Nmc, ncol = 341-213)
 # i=1
 for(i in 1:Nmc){
-  Npnlike[i,] = dbinom(dat.2018$color.clean,1,x.ip_LOD[i,dat.2018$day_of_year-30],log=TRUE)  ## calculate log likelihoods
+  Npnlike[i,] = dbinom(dat.roll2018$color.clean,1,x.ip_LOD[i,dat.roll2018$day_of_year-212],log=TRUE)  ## calculate log likelihoods
   Npnlike[i,is.na(Npnlike[i,])] = 0       ## missing data as weight 1; log(1)=0
-  tmp = tapply(Npnlike[i,],dat.2018$day_of_year-30,sum)
-  tmp2 = rep(0, length(unique(dat.2018$day_of_year)))
+  tmp = tapply(Npnlike[i,],dat.roll2018$day_of_year-212,sum)
+  tmp2 = rep(0, length(unique(dat.roll2018$day_of_year)))
   tmp2[as.numeric(names(tmp))] = tmp
   Npnclike[i,] = exp(cumsum(tmp2))
 }
@@ -181,24 +208,24 @@ for(i in 1:nobs){
   Npnpf[,i] = wtd.quantile(x.ip_LOD[,i],Npnclike[,i]/wbar[i],c(0.025,0.5,0.975))  ## calculate weighted median and CI
 }
 # Loess smoothing for 2018 data 
-dat.2018_order = dat.2018[order(dat.2018$day_of_year),]
-data_2018_loess_10 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=dat.2018_order, span=0.10) # 10% smoothing span
+dat.roll2018_order = dat.roll2018[order(dat.roll2018$day_of_year),]
+data_2018_loess_10 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=dat.roll2018_order, span=0.10) # 10% smoothing span
 data_2018_loess_10 <- predict(data_2018_loess_10) 
-data_2018_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=dat.2018_order, span=0.30) # 10% smoothing span
+data_2018_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=dat.roll2018_order, span=0.30) # 10% smoothing span
 data_2018_loess_30 <- predict(data_2018_loess_30) 
 
-time <- 31:47
+time <- 213:365
 #Initial plotting of data and uncertainty partitioning BEFORE iteration is added
-plot( dat.2018$day_of_year, dat.2018$color.clean ,pch="+",cex=0.5, xlab = "Day of Year", ylab = "Fall Color", main = "2018 Non-resampling Particle Filter")
+plot( dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "Day of Year", ylab = "Fall Color", main = "2018 Non-resampling Particle Filter")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
 ecoforecastR::ciEnvelope(time,i_ci_LOD[1,],i_ci_LOD[3,],col=col.alpha("green",0.5))
 ecoforecastR::ciEnvelope(time,det_ci_LOD[1,],det_ci_LOD[3,],col=col.alpha("blue",0.5))
 ecoforecastR::ciEnvelope(time,Npnpf[1,],Npnpf[3,],col=col.alpha("red",0.5))
-lines(data_2018_loess_10, x=dat.2018_order$day_of_year, col="green", lwd = 2)
-lines(data_2018_loess_30, x=dat.2018_order$day_of_year, col="blue", lwd = 2)
+lines(data_2018_loess_10, x=dat.roll2018_order$day_of_year, col="green", lwd = 2)
+lines(data_2018_loess_30, x=dat.roll2018_order$day_of_year, col="blue", lwd = 2)
 
 
-s = seq(31, 47, by = 2) # date that we're running the forecast on 
+s = seq(234, 355, by = 10) # date that we're running the forecast on 
 # set weights after the date to 0
 
 iter_pf = list()
@@ -208,22 +235,21 @@ for(i in seq_along(s)) {
   iter_pf[[i]] = matrix(NA,3,nobs)
   wbar = apply(Npnclike,2,mean)             ## mean weight at each time point
   tmp_clike = Npnclike
-  tmp_clike[,(s[i]:47)-30] <- tmp_clike[,s[i]-30]
+  tmp_clike[,(s[i]:365)-233] <- tmp_clike[,s[i]-233]
   for(j in 1:nobs){
     iter_pf[[i]][,j] = wtd.quantile(x.ip_LOD[,j],tmp_clike[,j]/wbar[j],c(0.025,0.5,0.975))  ## calculate weighted median and CI
   }
 }
 
-time <- 31:47
+time <- 213:365
 path.figures <- "../figures"
 png(width= 750, filename= file.path(path.figures, paste0('Daily Iterative fall color prediction', '.png')))
-plot(dat.2018$day_of_year, dat.2018$color.clean ,pch="+",cex=0.5, xlab = "day_of_year", ylab = "Fall Color", main = "Iterative 2018 Oak collection forecast")
+plot(dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "day_of_year", ylab = "Fall Color", main = "Iterative 2018 Oak collection forecast")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
 for(i in seq_along(s)) {
-  ecoforecastR::ciEnvelope(time[(s[i]:47)-30],iter_pf[[i]][1,(s[i]:47)-30],iter_pf[[i]][3,(s[i]:47)-30],col=col.alpha(i,0.5))
+  ecoforecastR::ciEnvelope(time[(s[i]:365)-233],iter_pf[[i]][1,(s[i]:365)-233],iter_pf[[i]][3,(s[i]:365)-233],col=col.alpha(i,0.5))
 }
 # ecoforecastR::ciEnvelope(time,Npnpf[1,],Npnpf[3,],col=col.alpha("red",0.5))
-lines(data_2018_loess_10, x=dat.2018_order$day_of_year, col="green", lwd = 2)
-lines(data_2018_loess_30, x=dat.2018_order$day_of_year, col="blue", lwd = 2)
+lines(data_2018_loess_10, x=dat.roll2018_order$day_of_year, col="green", lwd = 2)
+lines(data_2018_loess_30, x=dat.roll2018_order$day_of_year, col="blue", lwd = 2)
 dev.off()
-
