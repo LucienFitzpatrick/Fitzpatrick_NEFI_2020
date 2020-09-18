@@ -229,7 +229,7 @@ data_2018_loess_10 <- predict(data_2018_loess_10)
 data_2018_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=dat.roll2018_order, span=0.30) # 10% smoothing span
 data_2018_loess_30 <- predict(data_2018_loess_30) 
 
-time <- 213:355
+time <- 213:341
 #Initial plotting of data and uncertainty partitioning BEFORE iteration is added
 plot( dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "Day of Year", ylab = "Fall Color", main = "2018 Non-resampling Particle Filter")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
@@ -240,7 +240,7 @@ lines(data_2018_loess_10, x=dat.roll2018_order$day_of_year, col="green", lwd = 2
 lines(data_2018_loess_30, x=dat.roll2018_order$day_of_year, col="blue", lwd = 2)
 
 
-s = seq(234, 355, by = 10) # date that we're running the forecast on 
+s = seq(213, 341, by = 10) # date that we're running the forecast on 
 # set weights after the date to 0
 
 iter_pf = list()
@@ -250,21 +250,22 @@ for(i in seq_along(s)) {
   iter_pf[[i]] = matrix(NA,3,nobs)
   wbar = apply(Npnclike,2,mean)             ## mean weight at each time point
   tmp_clike = Npnclike
-  tmp_clike[,(s[i]:355)-233] <- tmp_clike[,s[i]-233]
+  tmp_clike[,(s[i]:340)-212] <- tmp_clike[,s[i]-212]
   for(j in 1:nobs){
     iter_pf[[i]][,j] = wtd.quantile(x.ip_LOD[,j],tmp_clike[,j]/wbar[j],c(0.025,0.5,0.975))  ## calculate weighted median and CI
   }
 }
 
-time <- 213:365
+time <- 213:341
 path.figures <- "../figures"
 png(width= 750, filename= file.path(path.figures, paste0('Daily Iterative fall color prediction', '.png')))
 plot(dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "day_of_year", ylab = "Fall Color", main = "Iterative 2018 Oak collection forecast")
-ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
+ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.1))
 for(i in seq_along(s)) {
-  ecoforecastR::ciEnvelope(time[(s[i]:355)-233],iter_pf[[i]][1,(s[i]:355)-233],iter_pf[[i]][3,(s[i]:355)-233],col=col.alpha(i,0.5))
+  ecoforecastR::ciEnvelope(time[(s[i]:340)-212],iter_pf[[i]][1,(s[i]:340)-212],iter_pf[[i]][3,(s[i]:340)-212],col=col.alpha(i,1))
 }
 # ecoforecastR::ciEnvelope(time,Npnpf[1,],Npnpf[3,],col=col.alpha("red",0.5))
 lines(data_2018_loess_10, x=dat.roll2018_order$day_of_year, col="green", lwd = 2)
 lines(data_2018_loess_30, x=dat.roll2018_order$day_of_year, col="blue", lwd = 2)
 dev.off()
+
