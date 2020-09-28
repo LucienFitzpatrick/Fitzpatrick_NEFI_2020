@@ -26,8 +26,6 @@ dat.npn <- dat.npn[order(dat.npn$day_of_year),]
 
 dat.npn$color.clean <- as.numeric(as.character(dat.npn$color.clean))
 
-#dat.npn$color.clean <- rollmean(dat.npn$color.clean, k = 7, fill = NA)
-
 #Creating copies of observations so we can create 7 day rolling averages
 dat.roll <- data.frame()
 for(i in 1:nrow(dat.npn)){
@@ -70,7 +68,6 @@ data.npn <- list(y = dat.npn$color.clean, n = length(dat.npn$color.clean), time 
 
 
 
-
 j.model   <- jags.model (file = textConnection(RandomWalk_binom),
                          data = data.new,
                          n.chains = 3)
@@ -84,7 +81,7 @@ jags.out   <- coda.samples (model = j.model,
                             variable.names = c("x","tau_add"),
                             n.iter = 40000)
 
-jags.out.npn   <- coda.samples (model = j.model,
+jags.out.npn   <- coda.samples (model = jnpn.model,
                             variable.names = c("x","tau_add"),
                             n.iter = 40000)
 
@@ -95,12 +92,13 @@ gelman.diag(jags.out)
 
 #GBR <- gelman.plot(jags.out)
 
-burnin = 20000                                ## determine convergence
-jags.burn <- window(jags.out,start=burnin)  ## remove burn-in
+burnin = 30000                                ## determine convergence
+jags.burn <- window(jags.out,start=burnin)
+jags.npn <- window(jags.out.npn,start=burnin)## remove burn-in
 #plot(jags.burn)  
 #summary(jags.burn)## check diagnostics post burn-in
 
-out <- as.matrix(jags.out)
+out <- as.matrix(jags.burn)
 x.cols <- grep("^x",colnames(out)) ## grab all columns that start with the letter x
 ci <- apply(out[,x.cols],2,quantile,c(0.025,0.5,0.975))
 
@@ -151,7 +149,7 @@ data_npn_2018 <- list(y = dat.2018$color.clean, n = length(dat.2018$color.clean)
                   a_add=100, r_add=1, x_ic = -100, tau_ic = 1000)
 
 #Number of monte Carlo iterations that will be used
-Nmc = 20000
+Nmc = 10000
 
 #Set the Initial conditions using the parameters from your model
 #IC <- rlnorm(Nmc, data$x_ic,(1/sqrt(data$tau_ic)))
@@ -202,7 +200,6 @@ ip_ci_LOD <- apply(x.ip_LOD,2,quantile,c(0.025,0.5,0.975))
 ##Two matrices are used because the second is used for calculation, and then the second is filled for the correect time period
 Npnlike = matrix(NA,nrow = Nmc, ncol = nrow(dat.roll2018))
 Npnclike = matrix(0,nrow = Nmc, ncol = 341-213)
-# i=1
 for(i in 1:Nmc){
   Npnlike[i,] = dbinom(dat.roll2018$color.clean,1,x.ip_LOD[i,dat.roll2018$day_of_year-212],log=TRUE)  ## calculate log likelihoods
   Npnlike[i,is.na(Npnlike[i,])] = 0       ## missing data as weight 1; log(1)=0
