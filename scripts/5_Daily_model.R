@@ -15,6 +15,7 @@ library(ecoforecastR)
 
 path.doc <- ("../data_processed/fall/")
 path.fig <- ("../data_processed/fall/figures")
+path.hub <- ("C:/Users/lucie/Documents/GitHub/NEFI/figures")
 
 dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 
@@ -63,28 +64,13 @@ model{
 data.new <- list(y = dat.roll$color.clean, n = length(dat.roll$color.clean), time = dat.roll$day_of_year-(min(dat.roll$day_of_year)-1), nt = 341-213, 
                  a_add=100, r_add=1, x_ic = -100 , tau_ic = 1000)
 
-data.npn <- list(y = dat.npn$color.clean, n = length(dat.npn$color.clean), time = dat.npn$day_of_year-(min(dat.npn$day_of_year)-1), nt = 341-213, 
-                 a_add=100, r_add=1, x_ic = -100 , tau_ic = 1000)
-
-
-
 j.model   <- jags.model (file = textConnection(RandomWalk_binom),
                          data = data.new,
                          n.chains = 3)
 
-jnpn.model   <- jags.model (file = textConnection(RandomWalk_binom),
-                         data = data.npn,
-                         n.chains = 3)
-
-
 jags.out   <- coda.samples (model = j.model,
                             variable.names = c("x","tau_add"),
                             n.iter = 40000)
-
-jags.out.npn   <- coda.samples (model = jnpn.model,
-                            variable.names = c("x","tau_add"),
-                            n.iter = 40000)
-
 
 gelman.diag(jags.out)
 
@@ -94,7 +80,7 @@ gelman.diag(jags.out)
 
 burnin = 30000                                ## determine convergence
 jags.burn <- window(jags.out,start=burnin)
-jags.npn <- window(jags.out.npn,start=burnin)## remove burn-in
+## remove burn-in
 #plot(jags.burn)  
 #summary(jags.burn)## check diagnostics post burn-in
 
@@ -115,8 +101,8 @@ data_all_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as
 data_all_loess_30 <- predict(data_all_loess_30) 
 
 
-png(filename= file.path(path.fig, paste0("Daily_Oak_Collection_Model_CI.png")))
-plot(time,ci[2,],ylim=c(0,1), xlim=c(210, 350),ylab="Fall color")
+png(filename= file.path(path.hub, paste0("Rolling_Daily_Oak_Collection_Model_CI.png")))
+plot(time,ci[2,],ylim=c(0,1), xlim=c(210, 350),main = "Rolling Daily Oak Collection Model CI", ylab="Fall color")
 ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.roll$day_of_year, dat.roll$color.clean ,pch="+",cex=0.5)
 lines(data_all_loess_10, x=data_all$day_of_year, col="red", lwd = 2)
@@ -145,8 +131,6 @@ dat.roll2018$color.clean <- as.numeric(as.character(dat.roll2018$color.clean))
 data_2018 <- list(y = dat.roll2018$color.clean, n = length(dat.roll2018$color.clean), time = dat.roll2018$day_of_year-(min(dat.roll2018$day_of_year)-1), nt = 341-213, 
                   a_add=100, r_add=1, x_ic = -100, tau_ic = 1000)
 
-data_npn_2018 <- list(y = dat.2018$color.clean, n = length(dat.2018$color.clean), time = dat.2018$day_of_year-(min(dat.2018$day_of_year)-1), nt = 341-213, 
-                  a_add=100, r_add=1, x_ic = -100, tau_ic = 1000)
 
 #Number of monte Carlo iterations that will be used
 Nmc = 10000
@@ -254,9 +238,8 @@ for(i in seq_along(s)) {
 }
 
 time <- 213:341
-path.figures <- "../figures"
-png(width= 750, filename= file.path(path.figures, paste0('Daily Iterative fall color prediction', '.png')))
-plot(dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "day_of_year", ylab = "Fall Color", main = "Iterative 2018 Oak collection forecast")
+png(width= 750, filename= file.path(path.hub, paste0('Rolling Daily Iterative fall color prediction', '.png')))
+plot(dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "day_of_year", ylab = "Fall Color", main = "Iterative 2018 Rolling Daily Oak collection forecast")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.1))
 for(i in seq_along(s)) {
   ecoforecastR::ciEnvelope(time[(s[i]:340)-212],iter_pf[[i]][1,(s[i]:340)-212],iter_pf[[i]][3,(s[i]:340)-212],col=col.alpha(i,1))
