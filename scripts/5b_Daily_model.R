@@ -210,7 +210,7 @@ data_2018_loess_10 <- predict(data_2018_loess_10)
 data_2018_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as.character(day_of_year)), data=dat.roll2018_order, span=0.30) # 10% smoothing span
 data_2018_loess_30 <- predict(data_2018_loess_30) 
 
-time <- 213:341
+time <- 213:340
 #Initial plotting of data and uncertainty partitioning BEFORE iteration is added
 plot( dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "Day of Year", ylab = "Fall Color", main = "2018 Non-resampling Particle Filter")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
@@ -237,8 +237,8 @@ for(i in seq_along(s)) {
   }
 }
 
-time <- 213:341
-png(width= 750, filename= file.path(path.hub, paste0('Rolling Daily Iterative fall color prediction', '.png')))
+time <- 213:340
+png(width= 750, filename= file.path(path.fig, paste0('Rolling Daily Iterative fall color prediction', '.png')))
 plot(dat.roll2018$day_of_year, dat.roll2018$color.clean ,pch="+",cex=0.5, xlab = "day_of_year", ylab = "Fall Color", main = "Iterative 2018 Rolling Daily Oak collection forecast")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.1))
 for(i in seq_along(s)) {

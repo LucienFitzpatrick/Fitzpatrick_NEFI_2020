@@ -44,8 +44,7 @@ model{
 
 dat.npn <- dat.npn[order(dat.npn$week),]
 
-#dat.new <- dat.npn[dat.npn$prop_Obs_week >= .75,]
-
+#Removing weeks with less than .75 proportion of trees observed
 dat.new <- dat.npn[dat.npn$week < 48,] 
 
 data.new <- list(y = dat.new$color.clean, n = length(dat.new$color.clean), time = dat.new$week-(min(dat.new$week)-1), nt = length(unique(dat.new$week)), 
