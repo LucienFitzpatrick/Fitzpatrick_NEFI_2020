@@ -90,7 +90,7 @@ data_all_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as
 data_all_loess_30 <- predict(data_all_loess_30) 
 
 
-png(filename= file.path(path.hub, paste0("Weekly_Oak_Collection_Model_CI.png")))
+png(filename= file.path(path.fig, paste0("Weekly_Oak_Collection_Model_CI.png")))
 plot(time,ci[2,],ylim=c(0,1),main ="Weekly_Oak_Collection_Model_CI.png", ylab="Fall color")
 ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.new$week, dat.new$color.clean ,pch="+",cex=0.5)
@@ -214,7 +214,7 @@ for(i in seq_along(s)) {
 }
 
 time <- 31:47
-png(width= 750, filename= file.path(path.hub, paste0('Weekly Iterative fall color prediction', '.png')))
+png(width= 750, filename= file.path(path.fig, paste0('Weekly Iterative fall color prediction', '.png')))
 plot(dat.2018$week, dat.2018$color.clean ,pch="+",cex=0.5, xlab = "Week", ylab = "Fall Color", main = "Iterative 2018 Weekly Oak collection forecast")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
 for(i in seq_along(s)) {

@@ -15,7 +15,7 @@ library(ecoforecastR)
 
 path.doc <- ("../data_processed/fall/")
 path.fig <- ("../data_processed/fall/figures")
-path.hub <- ("C:/Users/lucie/Documents/GitHub/NEFI/figures")
+#path.hub <- ("C:/Users/lucie/Documents/GitHub/NEFI/figures")
 
 dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 
@@ -89,8 +89,8 @@ data_all_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as
 data_all_loess_30 <- predict(data_all_loess_30) 
 
 
-png(filename= file.path(path.hub, paste0("Rolling_Daily_Oak_Collection_Model_CI.png")))
-plot(time,ci[2,],ylim=c(0,1), xlim=c(210, 350),main = "Rolling Daily Oak Collection Model CI", ylab="Fall color")
+png(filename= file.path(path.fig, paste0("Daily_Oak_Collection_Model_CI.png")))
+plot(time,ci[2,],ylim=c(0,1), xlim=c(210, 350),main = "Daily Oak Collection Model CI", ylab="Fall color")
 ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.npn$day_of_year, dat.npn$color.clean ,pch="+",cex=0.5)
 lines(data_all_loess_10, x=data_all$day_of_year, col="red", lwd = 2)
@@ -99,8 +99,6 @@ dev.off()
 
 
 #This section is for defining a range for a 2018 hindcast
-#Creating copies of observations so we can create 7 day rolling averages
-
 
 dat.2018$day_of_year <- as.numeric(as.character(dat.2018$day_of_year))
 dat.2018$color.clean <- as.numeric(as.character(dat.2018$color.clean))
@@ -198,7 +196,7 @@ lines(data_2018_loess_10, x=dat.2018_order$day_of_year, col="green", lwd = 2)
 lines(data_2018_loess_30, x=dat.2018_order$day_of_year, col="blue", lwd = 2)
 
 
-s = seq(213, 341, by = 10) # date that we're running the forecast on 
+s = seq(213, 341, by = 15) # date that we're running the forecast on 
 # set weights after the date to 0
 
 iter_pf = list()
@@ -215,8 +213,8 @@ for(i in seq_along(s)) {
 }
 
 time <- 213:340
-png(width= 750, filename= file.path(path.fig, paste0('Rolling Daily Iterative fall color prediction', '.png')))
-plot(dat.2018$day_of_year, dat.2018$color.clean ,pch="+",cex=0.5, xlab = "day_of_year", ylab = "Fall Color", main = "Iterative 2018 Rolling Daily Oak collection forecast")
+png(width= 750, filename= file.path(path.fig, paste0('Daily Iterative fall color prediction', '.png')))
+plot(dat.2018$day_of_year, dat.2018$color.clean ,pch="+",cex=0.5, xlab = "day_of_year", ylab = "Fall Color", main = "Iterative 2018 Daily Oak collection forecast")
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.1))
 for(i in seq_along(s)) {
   ecoforecastR::ciEnvelope(time[(s[i]:340)-212],iter_pf[[i]][1,(s[i]:340)-212],iter_pf[[i]][3,(s[i]:340)-212],col=col.alpha(i,1))

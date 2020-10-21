@@ -15,7 +15,7 @@ library(ecoforecastR)
 
 path.doc <- ("../data_processed/fall/")
 path.fig <- ("../data_processed/fall/figures")
-path.hub <- ("C:/Users/lucie/Documents/GitHub/NEFI/figures")
+#path.hub <- ("C:/Users/lucie/Documents/GitHub/NEFI/figures")
 
 dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
 
@@ -101,7 +101,7 @@ data_all_loess_30 <- loess(as.numeric(as.character(color.clean)) ~ as.numeric(as
 data_all_loess_30 <- predict(data_all_loess_30) 
 
 
-png(filename= file.path(path.hub, paste0("Rolling_Daily_Oak_Collection_Model_CI.png")))
+png(filename= file.path(path.fig, paste0("Rolling_Daily_Oak_Collection_Model_CI.png")))
 plot(time,ci[2,],ylim=c(0,1), xlim=c(210, 350),main = "Rolling Daily Oak Collection Model CI", ylab="Fall color")
 ecoforecastR::ciEnvelope(time,ci[1,],ci[3,],col=ecoforecastR::col.alpha("lightBlue",0.75))
 points(dat.roll$day_of_year, dat.roll$color.clean ,pch="+",cex=0.5)
