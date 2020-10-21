@@ -108,6 +108,17 @@ dat.2018$color.clean <- as.numeric(as.character(dat.2018$color.clean))
 data_2018 <- list(y = dat.2018$color.clean, n = length(dat.2018$color.clean), time = dat.2018$week-(min(dat.2018$week)-1), nt = length(unique(dat.2018$week)), 
                   a_add=100, r_add=1, x_ic = -100, tau_ic = 1000)
 
+
+#------------------------------------------------------------------------------------------#
+#Here is where the 2018 forecast begins and things start getting tricky
+#------------------------------------------------------------------------------------------#
+
+
+#-------------------------------------#
+#First is the forecast function that determines our uncertainty at each time point
+#--------------------------------------#
+
+
 #Number of monte Carlo iterations that will be used
 Nmc = 20000
 
@@ -155,11 +166,16 @@ det_ci_LOD <- apply(x.det_LOD,2,quantile,c(0.025,0.5,0.975))
 i_ci_LOD <- apply(x.i_LOD,2,quantile,c(0.025,0.5,0.975)) 
 ip_ci_LOD <- apply(x.ip_LOD,2,quantile,c(0.025,0.5,0.975)) 
 
+
+#-----------------------------------------------------------------------------#
+#Here is where the errors actually begin (in the rolling model)
+#-----------------------------------------------------------------------------#
+
 ## calculate the cumulative likelihoods
 ## to be used as PF weights
-##Two matrices are used because the second is used for calculation, and then the second is filled for the correect time period
-Npnlike = matrix(NA,nrow = Nmc, ncol = nrow(dat.2018))
-Npnclike = matrix(0,nrow = Nmc, ncol = length(unique(dat.2018$week)))
+#Two tmp are used because the first is used for calculation, and then the second is filled for the correct time period
+Npnlike = matrix(NA,nrow = Nmc, ncol = nrow(dat.2018))#log liklihood
+Npnclike = matrix(0,nrow = Nmc, ncol = length(unique(dat.2018$week)))#cumulative log liklihood
 # i=1
 for(i in 1:Nmc){
   Npnlike[i,] = dbinom(dat.2018$color.clean,1,x.ip_LOD[i,dat.2018$week-30],log=TRUE)  ## calculate log likelihoods

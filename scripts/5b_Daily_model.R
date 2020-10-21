@@ -107,6 +107,16 @@ data_2018 <- list(y = dat.2018$color.clean, n = length(dat.2018$color.clean), ti
                   a_add=100, r_add=1, x_ic = -100, tau_ic = 1000)
 
 
+#------------------------------------------------------------------------------------------#
+#Here is where the 2018 forecast begins and things start getting tricky
+#------------------------------------------------------------------------------------------#
+
+
+#-------------------------------------#
+#First is the forecast function that determines our uncertainty at each time point
+#--------------------------------------#
+
+
 #Number of monte Carlo iterations that will be used
 Nmc = 10000
 
@@ -152,13 +162,18 @@ x.ip_LOD <- forecastx(IC=IC,
 
 det_ci_LOD <- apply(x.det_LOD,2,quantile,c(0.025,0.5,0.975)) 
 i_ci_LOD <- apply(x.i_LOD,2,quantile,c(0.025,0.5,0.975)) 
-ip_ci_LOD <- apply(x.ip_LOD,2,quantile,c(0.025,0.5,0.975)) 
+ip_ci_LOD <- apply(x.ip_LOD,2,quantile,c(0.025,0.5,0.975))
+
+#-----------------------------------------------------------------------------#
+#Here is where the errors actually begin (in the rolling model)
+#-----------------------------------------------------------------------------#
+
 
 ## calculate the cumulative likelihoods
 ## to be used as PF weights
-##Two matrices are used because the second is used for calculation, and then the second is filled for the correect time period
-Npnlike = matrix(NA,nrow = Nmc, ncol = nrow(dat.2018))
-Npnclike = matrix(0,nrow = Nmc, ncol = 341-213)
+#Two tmp are used because the first is used for calculation, and then the second is filled for the correct time period
+Npnlike = matrix(NA,nrow = Nmc, ncol = nrow(dat.2018)) #To store the log liklihood
+Npnclike = matrix(0,nrow = Nmc, ncol = 341-213) #To store the cumulative log liklihood
 for(i in 1:Nmc){
   Npnlike[i,] = dbinom(dat.2018$color.clean,1,x.ip_LOD[i,dat.2018$day_of_year-212],log=TRUE)  ## calculate log likelihoods
   Npnlike[i,is.na(Npnlike[i,])] = 0       ## missing data as weight 1; log(1)=0
@@ -166,7 +181,6 @@ for(i in 1:Nmc){
   tmp2 = rep(0, 341-213)
   tmp2[as.numeric(names(tmp))] = tmp
   Npnclike[i,] = exp(cumsum(tmp2))
-  Npnclike[i,] <- apply(as.data.frame(Npnclike[i,]), 1, function(x) ifelse(x < 9.999999e-290, 9.999999e-290, x))
 }
 hist(Npnclike[,ncol(Npnclike)],main="Final Ensemble Weights")
 
