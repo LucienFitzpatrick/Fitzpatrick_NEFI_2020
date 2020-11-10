@@ -177,10 +177,10 @@ Npnclike = matrix(0,nrow = Nmc, ncol = 341-213) #To store the cumulative log lik
 for(i in 1:Nmc){
   Npnlike[i,] = dbinom(dat.2018$color.clean,1,x.ip_LOD[i,dat.2018$day_of_year-212],log=TRUE)  ## calculate log likelihoods
   Npnlike[i,is.na(Npnlike[i,])] = 0       ## missing data as weight 1; log(1)=0
-  tmp = tapply(Npnlike[i,],dat.2018$day_of_year-212,sum)
-  tmp2 = rep(0, 341-213)
-  tmp2[as.numeric(names(tmp))] = tmp
-  Npnclike[i,] = exp(cumsum(tmp2))
+  tmp = tapply(Npnlike[i,],dat.2018$day_of_year-212,sum) #sum each day for the weight of that day on the filter
+  tmp2 = rep(0, 341-213) #create yday names for each
+  tmp2[as.numeric(names(tmp))] = tmp #Convert that number to the yday we care about
+  Npnclike[i,] = exp(cumsum(tmp2)) #Take the cumulative log likihood for each
 }
 hist(Npnclike[,ncol(Npnclike)],main="Final Ensemble Weights")
 
