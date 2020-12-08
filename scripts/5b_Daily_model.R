@@ -17,7 +17,7 @@ path.doc <- ("../data_processed/fall/")
 path.fig <- ("../data_processed/fall/figures")
 #path.hub <- ("C:/Users/lucie/Documents/GitHub/NEFI/figures")
 
-dat.npn <- read.csv(file.path(path.doc, "Fall_Phenology_data.csv"))
+dat.npn <- read.csv(file.path(path.doc, "Arb_Fall_Phenology_data.csv"))
 
 dat.2018 <- dat.npn[dat.npn$year == 2018,]
 dat.2018 <- dat.2018[dat.2018$day_of_year <= 341,]
@@ -118,7 +118,7 @@ data_2018 <- list(y = dat.2018$color.clean, n = length(dat.2018$color.clean), ti
 
 
 #Number of monte Carlo iterations that will be used
-Nmc = 10000
+Nmc = 10
 
 #Set the Initial conditions using the parameters from your model
 #IC <- rlnorm(Nmc, data$x_ic,(1/sqrt(data$tau_ic)))
@@ -131,12 +131,12 @@ IC <- rlnorm(Nmc, data_2018$x_ic,(1/sqrt(data_2018$tau_ic)))
 ##` @param Q     Process error (default = 0 for deterministic runs)
 ##` @param n     Size of Monte Carlo ensemble
 NT = data_2018$nt
-forecastx <- function(IC,Q=0,n=Nmc){
+forecastx <- function(IC,Q,n=Nmc){
   x <- z <- matrix(NA,n,NT)  ## storage
   Xprev <- IC           ## initialize
   for(t in 1:NT){
     mu <- Xprev 
-    z[,t] = rnorm(n,mu,Q)
+    z[,t] = rnorm(n,mu, Q)
     x[,t] <- pmin(0.999,pmax(0.0001,z[,t]))
     Xprev <- x[,t]                                  ## update IC
   }
@@ -167,6 +167,53 @@ ip_ci_LOD <- apply(x.ip_LOD,2,quantile,c(0.025,0.5,0.975))
 #-----------------------------------------------------------------------------#
 #Here is where the errors actually begin (in the rolling model)
 #-----------------------------------------------------------------------------#
+
+timestep = 1800 #seconds
+params = list()
+
+## univariate priors: expert opinion
+params$Q = rgamma(Nmc, 100, 1)     ## 
+
+#Here is a funciton designed to update the parameters to reassign
+update.params <- function(params, index){
+  params$Q = params$Q[index, ]
+  return(params)
+}
+
+hist.params = list()               ## since we resample parameters, create a record (history) of what values were used at each step
+hist.params[[1]] = params        ## initialize with original parameters
+X = X.orig                       ## reset state to the initial values, not the final values from the previous ensemble
+
+output = array(0.0, c(NT, Nmc, 1))
+### resampling particle filter
+sample = 1                         ## counter
+for(t in 1:NT){
+  
+  ## forward step
+  #output[t, , ]=SSEM(X, params, inputs[t, ])
+  output[t, , ] <- forecastx(IC, params, n=Nmc)
+  X = output[t, , 1:3]
+  
+  ## analysis step
+  if(t%%(42) == 0){            ## if at data frequence (remainder == 0) 
+    sample = sample + 1            ## increment counter
+    print(sample)
+    if(!is.na(LAIr[sample])){    ## if observation is present
+      
+      ## calulate Likelihood (weights)
+      Lm = apply(output[t + 1-(48 * 8):1, ,4], 2, mean)    ## average model LAI over obs period
+      wt = dnorm(LAIr[sample], Lm, LAIr.sd[sample])    ## calculate likelihood (weight)
+      
+      ## resample ensemble members in proportion to their weight
+      index = sample.int(ne, ne, replace = TRUE, prob = wt) 
+      
+      X = X[index, ]                                  ## update state
+      params = update.params(params, index)           ## update parameters
+    }
+    hist.params[[sample+1]] = params                 ## save parameters
+  }
+  
+}
 
 
 ## calculate the cumulative likelihoods
@@ -205,7 +252,7 @@ plot( dat.2018$day_of_year, dat.2018$color.clean ,pch="+",cex=0.5, xlab = "Day o
 ecoforecastR::ciEnvelope(time,ip_ci_LOD[1,],ip_ci_LOD[3,],col=col.alpha("purple",0.5))
 ecoforecastR::ciEnvelope(time,i_ci_LOD[1,],i_ci_LOD[3,],col=col.alpha("green",0.5))
 ecoforecastR::ciEnvelope(time,det_ci_LOD[1,],det_ci_LOD[3,],col=col.alpha("blue",0.5))
-ecoforecastR::ciEnvelope(time,Npnpf[1,],Npnpf[3,],col=col.alpha("red",0.5))
+ecoforecastR::ciEnvelope(time, Npnpf[1,],Npnpf[3,],col=col.alpha("red",0.5))
 lines(data_2018_loess_10, x=dat.2018_order$day_of_year, col="green", lwd = 2)
 lines(data_2018_loess_30, x=dat.2018_order$day_of_year, col="blue", lwd = 2)
 
