@@ -125,23 +125,88 @@ Nmc = 10
 
 #This if for 2018 hindcast testing
 IC <- rlnorm(Nmc, data_2018$x_ic,(1/sqrt(data_2018$tau_ic)))
+X = IC 
+
+timestep = 1800 #seconds
+params = list()
+
+## univariate priors: expert opinion
+params$Q = 0     ## 
 
 #### Forecast function 
 ##` @param IC    Initial Conditions
 ##` @param Q     Process error (default = 0 for deterministic runs)
 ##` @param n     Size of Monte Carlo ensemble
 NT = data_2018$nt
-forecastx <- function(IC,Q,n=Nmc){
-  x <- z <- matrix(NA,n,NT)  ## storage
-  Xprev <- IC           ## initialize
+output = array(0.0, c(NT, Nmc, 1))
+forecastx <- function(X, params, Nmc){
   for(t in 1:NT){
-    mu <- Xprev 
-    z[,t] = rnorm(n,mu, Q)
-    x[,t] <- pmin(0.999,pmax(0.0001,z[,t]))
-    Xprev <- x[,t]                                  ## update IC
+    mu <- X 
+    z = rnorm(Nmc ,mu, params$Q)
+    x <- pmin(0.999,pmax(0,z))                                 ## update IC
   }
   return(x)
 }
+
+
+#Here is a funciton designed to update the parameters to reassign
+update.params <- function(params, index){
+  params$Q = params$Q[index, ]
+  return(params)
+}
+dat.obs <- aggregate(color.clean~day_of_year, data=dat.npn,
+          FUN=mean, na.action = na.omit)
+
+dat.sd <- aggregate(color.clean~day_of_year, data=dat.npn,
+                     FUN=sd, na.action = na.omit)
+
+dat.obs <- dat.obs$color.clean
+dat.sd <- dat.sd$color.clean
+
+hist.params = list()               ## since we resample parameters, create a record (history) of what values were used at each step
+hist.params[[1]] = params        ## initialize with original parameters
+
+
+### resampling particle filter
+sample = 1                         ## counter
+for(t in 1:NT){
+  
+  ## forward step
+  output[t, , ] <- forecastx(X, params, Nmc)
+  X = output[t, , 1]
+  
+  ## analysis step
+  if(t%%(10) == 0){            ## if at data frequence (remainder == 0) 
+    sample = sample + 1            ## increment counter
+    print(sample)
+    if((dat.obs[sample] > 0)){    ## if observation is present
+      
+      ## calulate Likelihood (weights)
+      Lm = apply(output[t + 1-10:1, ,1], 2, mean)    ## average observations
+      wt = dnorm(dat.obs[sample], Lm, dat.sd[sample])    ## calculate likelihood (weight) WILL NEEED TO FIGURE OUT SD THESE EQUATIONS ARE ROUGH
+      
+      ## resample ensemble members in proportion to their weight
+      index = sample.int(Nmc, Nmc, replace = TRUE, prob = wt) 
+      
+      X = index                                  ## update state
+      #params = update.params(params, index)           ## update parameters DONT NEED TO DO CURRENTLY BECAUSE PARAMETER IS 0
+    }
+    hist.params[[sample+1]] = params                 ## save parameters
+  }
+  
+}
+
+NPNpr = t(apply(output[, , 1], 2, tapply, window, mean))         ## summarize PF LAI at measurment frequency
+NPNpr.ci = apply(NPNpr, 2, quantile, c(0.025,0.5,0.975))     ## calculate median and CI
+
+## plot time-series
+plot( dat.2018$day_of_year, dat.2018$color.clean ,pch="+",cex=0.5, xlab = "Day of Year", ylab = "Fall Color", main = "2018 Non-resampling Particle Filter")
+ciEnvelope(time, NPNpr.ci[1, ], NPNpr.ci[3, ], col = col.pf[3])
+    
+
+#----------------------------------------------------------#
+#OLDER SCRIPT FROM AN OLDER VERSION OF THE PARTICLE FILTER. AM KEEPING BECAUSE WILL BORROW SOME
+#----------------------------------------------------------#
 
 param.mean <- apply(out,2,mean)
 
@@ -167,54 +232,6 @@ ip_ci_LOD <- apply(x.ip_LOD,2,quantile,c(0.025,0.5,0.975))
 #-----------------------------------------------------------------------------#
 #Here is where the errors actually begin (in the rolling model)
 #-----------------------------------------------------------------------------#
-
-timestep = 1800 #seconds
-params = list()
-
-## univariate priors: expert opinion
-params$Q = rgamma(Nmc, 100, 1)     ## 
-
-#Here is a funciton designed to update the parameters to reassign
-update.params <- function(params, index){
-  params$Q = params$Q[index, ]
-  return(params)
-}
-
-hist.params = list()               ## since we resample parameters, create a record (history) of what values were used at each step
-hist.params[[1]] = params        ## initialize with original parameters
-X = X.orig                       ## reset state to the initial values, not the final values from the previous ensemble
-
-output = array(0.0, c(NT, Nmc, 1))
-### resampling particle filter
-sample = 1                         ## counter
-for(t in 1:NT){
-  
-  ## forward step
-  #output[t, , ]=SSEM(X, params, inputs[t, ])
-  output[t, , ] <- forecastx(IC, params, n=Nmc)
-  X = output[t, , 1:3]
-  
-  ## analysis step
-  if(t%%(42) == 0){            ## if at data frequence (remainder == 0) 
-    sample = sample + 1            ## increment counter
-    print(sample)
-    if(!is.na(LAIr[sample])){    ## if observation is present
-      
-      ## calulate Likelihood (weights)
-      Lm = apply(output[t + 1-(48 * 8):1, ,4], 2, mean)    ## average model LAI over obs period
-      wt = dnorm(LAIr[sample], Lm, LAIr.sd[sample])    ## calculate likelihood (weight)
-      
-      ## resample ensemble members in proportion to their weight
-      index = sample.int(ne, ne, replace = TRUE, prob = wt) 
-      
-      X = X[index, ]                                  ## update state
-      params = update.params(params, index)           ## update parameters
-    }
-    hist.params[[sample+1]] = params                 ## save parameters
-  }
-  
-}
-
 
 ## calculate the cumulative likelihoods
 ## to be used as PF weights
